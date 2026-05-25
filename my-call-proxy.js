@@ -1,7 +1,6 @@
 class MyCallProxy {
   constructor(serverUrl) {
     this.serverUrl = serverUrl;
-    this.ws = null;
     this.pendingCalls = new Map(); // msgId → { callback, timestamp }
     this.isConnected = false;
     this.originalMyCall = null;
@@ -39,32 +38,45 @@ class MyCallProxy {
     const wsUrl = this.serverUrl + '/ws?type=simulator';
 
     try {
-      this.ws = new WebSocket(wsUrl);
+      my.connectSocket({
+        url: wsUrl,
+        success: () => {
+          console.log('[MyCallProxy] WebSocket 连接创建成功');
+        },
+        fail: (err) => {
+          console.error('[MyCallProxy] WebSocket 连接失败', err);
+          this.isConnected = false;
+        }
+      });
 
-      this.ws.onopen = () => {
+      // 监听连接打开
+      my.onSocketOpen(() => {
         console.log('[MyCallProxy] 🔗 已连接到代理服务器');
         this.isConnected = true;
-      };
+      });
 
-      this.ws.onmessage = (event) => {
+      // 监听消息
+      my.onSocketMessage((res) => {
         try {
-          const message = JSON.parse(event.data);
+          const message = JSON.parse(res.data);
           this.handleMessage(message);
         } catch (error) {
           console.error('[MyCallProxy] 消息解析失败:', error);
         }
-      };
+      });
 
-      this.ws.onerror = (error) => {
-        console.error('[MyCallProxy] WebSocket 错误:', error);
+      // 监听错误
+      my.onSocketError((err) => {
+        console.error('[MyCallProxy] WebSocket 错误:', err);
         this.isConnected = false;
-      };
+      });
 
-      this.ws.onclose = () => {
+      // 监听关闭
+      my.onSocketClose(() => {
         console.warn('[MyCallProxy] WebSocket 连接已关闭');
         this.isConnected = false;
         this.rejectPendingCalls('连接已断开');
-      };
+      });
     } catch (error) {
       console.error('[MyCallProxy] 连接失败:', error);
     }
@@ -97,8 +109,17 @@ class MyCallProxy {
     };
 
     try {
-      this.ws.send(JSON.stringify(message));
-      console.log(`[MyCallProxy] 📤 发送: ${api} (msgId: ${msgId})`);
+      my.sendSocketMessage({
+        data: JSON.stringify(message),
+        success: () => {
+          console.log(`[MyCallProxy] 📤 发送: ${api} (msgId: ${msgId})`);
+        },
+        fail: (err) => {
+          console.error('[MyCallProxy] 发送失败:', err);
+          this.pendingCalls.delete(msgId);
+          this.fallbackToOriginal(api, params, callback);
+        }
+      });
     } catch (error) {
       console.error('[MyCallProxy] 发送失败:', error);
       this.pendingCalls.delete(msgId);
@@ -159,9 +180,7 @@ class MyCallProxy {
   // 销毁代理
   destroy() {
     this.isConnected = false;
-    if (this.ws) {
-      this.ws.close();
-    }
+    my.closeSocket();
     if (this.originalMyCall) {
       my.call = this.originalMyCall;
     }
