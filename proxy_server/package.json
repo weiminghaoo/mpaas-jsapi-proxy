@@ -1,0 +1,16 @@
+{
+  "name": "mpaas-jsapi-proxy-server",
+  "version": "1.0.0",
+  "description": "mPaaS JSAPI 代理服务器",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": ["mpaas", "proxy", "websocket"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.0"
+  }
+}
