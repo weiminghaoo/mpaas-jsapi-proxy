@@ -10,6 +10,7 @@ class ProxyServer {
     this.deviceManager = new DeviceManager();
     this.messageRouter = new MessageRouter(this.deviceManager);
     this.wss = null;
+    this.heartbeatTimer = null;
   }
 
   // 启动服务器
@@ -84,7 +85,7 @@ class ProxyServer {
 
   // 启动心跳检测
   startHeartbeatCheck() {
-    setInterval(() => {
+    this.heartbeatTimer = setInterval(() => {
       const now = Date.now();
       const timeout = this.config.heartbeatInterval * 2;
 
@@ -105,6 +106,10 @@ class ProxyServer {
 
   // 停止服务器
   stop() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     if (this.wss) {
       this.wss.close();
       Utils.log('服务器已关闭', 'info');
