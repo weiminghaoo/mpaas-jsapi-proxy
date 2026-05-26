@@ -24,13 +24,14 @@
 
   <view class="card">
     <view class="card-title">服务器配置</view>
-    <view class="input-row">
+    <view class="input-row-scan">
       <input
         class="server-input"
         placeholder="ws://192.168.1.100:3000"
         value="{{serverUrl}}"
         onInput="onServerUrlInput"
       />
+      <image class="scan-icon" src="{{scanIcon}}" onTap="scanQRCode" />
     </view>
     <view class="button-row">
       <button class="btn-primary" onTap="connect">连接</button>
