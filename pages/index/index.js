@@ -6,7 +6,7 @@ Page({
     serverUrl: 'ws://192.168.1.100:3000',
     connectionStatus: '未连接',
     statusClass: 'disconnected',
-    scanIcon: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZmlsbD0iIzY2NiIgZD0iTTMgM2g2djZIM1Yzem0yIDJ2MmgyVjVINW04LTJoNnY2aC02VjN6bTItMnYyaTJINWgtMnpNMyAxM2g2djZIM3YtNn0yIDJ2Mmgydi0ySDV6MTMtMmgzdjJoLTN2LTJ6bTMwaDJ2MmgtMnYtMnptLTMgMmgydjJoLTJ2LTJ6bTIgMmgydjJoLTJ2LTJ6Ii8+PC9zdmc+'
+    scanIcon: '/assets/scan.svg'
   },
 
   onLoad() {

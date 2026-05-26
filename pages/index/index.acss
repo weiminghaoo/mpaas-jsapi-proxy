@@ -122,9 +122,8 @@
 }
 
 .scan-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
   position: absolute;
-  right: 20rpx;
-  cursor: pointer;
+  right: 16rpx;
 }
