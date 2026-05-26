@@ -45,7 +45,6 @@ class MyCallProxy {
 
   // 连接到代理服务器
   connect() {
-    //格式ws://192.168.0.12:3000?deviceId=device_1779703395901_iwzohax69
     const deviceId = this.getDeviceId()
 
     if (!deviceId) {
@@ -207,7 +206,7 @@ class MyCallProxy {
   // 拒绝所有等待中的调用
   rejectPendingCalls(reason) {
     for (const [msgId, pending] of this.pendingCalls) {
-      pending.callback({ error: { message: reason } })
+      pending.callback({ error: { message: reason, msgId: msgId } })
     }
     this.pendingCalls.clear()
   }
@@ -219,12 +218,10 @@ class MyCallProxy {
 
   // 获取设备ID（带缓存）
   getDeviceId() {
-    // 返回缓存值
     if (this._deviceIdCache) {
       return this._deviceIdCache
     }
 
-    // 使用正则表达式提取，兼容所有协议（ws://, http:// 等）
     const match = this.serverUrl.match(/[?&]deviceId=([^&]+)/)
     this._deviceIdCache = match ? match[1] : null
     return this._deviceIdCache
@@ -232,15 +229,13 @@ class MyCallProxy {
 
   // 构建带路径和参数的 WebSocket URL
   buildWebSocketUrl(path, extraParams = {}) {
-    // 解析基础 URL: ws://host:port?existing=params
-    const urlMatch = this.serverUrl.match(/^(https?:\/\/|wss?:\/\/)([^\/?]+)(.*)$/)
+    const urlMatch = this.serverUrl.match(/^(https?:\/\/|wss?:\/\/)([^\\/?]+)(.*)$/)
     if (!urlMatch) {
       return this.serverUrl
     }
 
     const [, protocol, host, rest] = urlMatch
 
-    // 提取现有查询参数
     let existingParams = {}
     const queryMatch = rest.match(/\?([^#]*)/)
     if (queryMatch) {
@@ -253,20 +248,12 @@ class MyCallProxy {
       })
     }
 
-    // 合并参数
     const allParams = { ...existingParams, ...extraParams }
     const queryString = Object.entries(allParams)
       .map(([k, v]) => `${k}=${v}`)
       .join('&')
 
-    // 构建最终 URL: ws://host:port/path?params
     return `${protocol}${host}${path}?${queryString}`
-  }
-
-  // 从服务器URL提取设备ID（保留用于兼容性）
-  extractDeviceId(url) {
-    const match = url.match(/[?&]deviceId=([^&]+)/)
-    return match ? match[1] : null
   }
 
   // 等待连接完成
@@ -298,9 +285,8 @@ class MyCallProxy {
     }
   }
 }
-
 export default MyCallProxy
 
 // 使用方法：
 // const proxy = new MyCallProxy('ws://192.168.1.100:3000?deviceId=device_xxx');
-// proxy.init();`
+// proxy.init();

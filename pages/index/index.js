@@ -1,7 +1,7 @@
-const { Storage } = require('../../utils/storage')
-const { CLIENT_PROXY_CODE } = require('/proxy_client/client_proxy_code')
-const { parseUrlString } = require('/utils/urlParser')
+import { Storage } from '../../utils/storage'
+import { parseUrlString } from '../../utils/urlParser'
 
+const PROXY_CODE_URL = 'https://s.xiaolianhb.com/xlmpaas/scripts/my-call-proxy.js'
 
 Page({
   data: {
@@ -262,10 +262,36 @@ Page({
   },
 
   copyClientProxyCode() {
-    my.setClipboard({
-      text: CLIENT_PROXY_CODE,
+    // 如果已经下载过，直接复制缓存的代码
+    if (this._cachedProxyCode) {
+      my.setClipboard({
+        text: this._cachedProxyCode,
+      })
+      my.showToast({ content: '客户端代码已复制', duration: 1500 })
+      return
+    }
+
+    my.showToast({ content: '正在下载代理代码...', duration: 1000 })
+
+    my.request({
+      url: PROXY_CODE_URL,
+      method: 'GET',
+      dataType: 'text',
+      success: (res) => {
+        console.log('下载成功:', res)
+
+        // 缓存代码内容
+        this._cachedProxyCode = res.data
+        my.setClipboard({
+          text: this._cachedProxyCode,
+        })
+        my.showToast({ content: '客户端代码已复制', duration: 1500 })
+      },
+      fail: (err) => {
+        console.error('下载失败:', err)
+        my.showToast({ content: '下载代理代码失败', duration: 2000 })
+      },
     })
-    my.showToast({ content: '客户端代码已复制', duration: 1500 })
   },
 
   scanQRCode() {
