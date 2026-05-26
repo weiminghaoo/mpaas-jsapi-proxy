@@ -1,11 +1,12 @@
-const os = require('os');
+import os from 'os';
+import type { NetworkInterfaceInfo } from 'os';
 
-class Utils {
+export class Utils {
   // 获取本地局域网IP地址
-  static getLocalIP() {
+  static getLocalIP(): string {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name]) {
+      for (const iface of interfaces[name]!) {
         if (iface.family === 'IPv4' && !iface.internal) {
           return iface.address;
         }
@@ -15,12 +16,12 @@ class Utils {
   }
 
   // 格式化服务器连接地址
-  static formatServerUrl(ip, port, path) {
+  static formatServerUrl(ip: string, port: number, path: string): string {
     return `ws://${ip}:${port}${path}`;
   }
 
   // 日志输出
-  static log(message, type = 'info') {
+  static log(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info'): void {
     const timestamp = new Date().toLocaleTimeString('zh-CN');
     const icons = {
       info: 'ℹ️',
@@ -31,5 +32,3 @@ class Utils {
     console.log(`[${timestamp}] ${icons[type] || 'ℹ️'} ${message}`);
   }
 }
-
-module.exports = { Utils };

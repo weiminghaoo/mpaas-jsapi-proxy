@@ -1,5 +1,5 @@
-module.exports = {
-  port: 3000,
+export default {
+  port: 7521,
   wsPath: '/ws',
   heartbeatInterval: 30000 // 30秒
 };
