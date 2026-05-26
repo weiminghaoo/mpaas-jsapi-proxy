@@ -57,6 +57,19 @@
     </view>
   </view>
 
+  <view class="card">
+    <view class="card-title">客户端代理代码</view>
+    <view class="info-row">
+      <text class="label">将以下代码复制到模拟器的调试工具中：</text>
+    </view>
+    <view class="code-preview">
+      <text class="code-preview-text">class MyCallProxy { ... }</text>
+    </view>
+    <view class="button-row" style="margin-top: 20rpx;">
+      <button class="btn-primary" onTap="copyClientProxyCode">复制完整代码</button>
+    </view>
+  </view>
+
   <view class="footer">
     <text class="hint-text">连接成功后，点击"复制连接参数"，然后粘贴到模拟器的 MyCallProxy 中</text>
   </view>
