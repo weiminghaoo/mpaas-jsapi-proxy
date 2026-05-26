@@ -40,6 +40,6 @@
   </view>
 
   <view class="footer">
-    <text class="hint-text">连接成功后，点击"复制连接参数"，然后粘贴到模拟器的 app.js 中</text>
+    <text class="hint-text">连接成功后，点击"复制连接参数"，然后粘贴到模拟器的 MyCallProxy 中</text>
   </view>
 </view>

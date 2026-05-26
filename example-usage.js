@@ -1,10 +1,12 @@
 // example-usage.js
-const { MyCallProxy } = require('./my-call-proxy.js');
+import MyCallProxy from './my-call-proxy.js';
 
-// 创建代理实例
-// 注意: deviceId 参数需要从代理小程序中获取
-const proxy = new MyCallProxy('ws://192.168.1.100:3000?deviceId=device_abc123');
-
+// ⚠️ 重要：使用从真机小程序复制的设备ID
+// 步骤：
+// 1. 在真机上打开代理小程序并连接
+// 2. 扫描获取服务器配置
+// 3. 复制连接参数，替换下面的
+const proxy = new MyCallProxy('ws://192.168.0.12:3000?deviceId=device_1779766272138_e5xft0yey');
 // 初始化代理
 proxy.init();
 
