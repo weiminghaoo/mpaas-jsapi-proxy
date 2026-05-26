@@ -245,6 +245,20 @@ Page({
     my.showToast({ content: '连接参数已复制', duration: 1500 })
   },
 
+  copyInstallCommand() {
+    my.setClipboard({
+      text: 'npm install -g mpaas-jsapi-proxy',
+    })
+    my.showToast({ content: '安装命令已复制', duration: 1500 })
+  },
+
+  copyStartCommand() {
+    my.setClipboard({
+      text: 'mpaas-jsapi-proxy',
+    })
+    my.showToast({ content: '启动命令已复制', duration: 1500 })
+  },
+
   scanQRCode() {
     my.scan({
       type: 'qr',

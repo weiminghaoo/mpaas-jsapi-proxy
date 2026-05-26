@@ -1,5 +1,5 @@
 // example-usage.js
-import MyCallProxy from './my-call-proxy.js';
+import MyCallProxy from './proxy_client/my-call-proxy.js';
 
 // ⚠️ 重要：使用从真机小程序复制的设备ID
 // 步骤：

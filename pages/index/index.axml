@@ -39,6 +39,24 @@
     </view>
   </view>
 
+  <view class="card">
+    <view class="card-title">使用说明</view>
+    <view class="info-row">
+      <text class="label">1. 全局安装：</text>
+    </view>
+    <view class="code-block" onTap="copyInstallCommand">
+      <text class="code-text">npm install -g mpaas-jsapi-proxy</text>
+      <image class="copy-icon" src="/assets/copy.svg" />
+    </view>
+    <view class="info-row" style="margin-top: 10rpx;">
+      <text class="label">2. 启动服务器：</text>
+    </view>
+    <view class="code-block" onTap="copyStartCommand">
+      <text class="code-text">mpaas-jsapi-proxy</text>
+      <image class="copy-icon" src="/assets/copy.svg" />
+    </view>
+  </view>
+
   <view class="footer">
     <text class="hint-text">连接成功后，点击"复制连接参数"，然后粘贴到模拟器的 MyCallProxy 中</text>
   </view>

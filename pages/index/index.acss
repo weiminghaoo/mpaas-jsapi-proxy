@@ -127,3 +127,29 @@
   position: absolute;
   right: 16rpx;
 }
+
+/* 代码块样式 */
+.code-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f6f6f6;
+  border: 1px solid #e8e8e8;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  margin-top: 10rpx;
+}
+
+.code-text {
+  font-family: 'Courier New', monospace;
+  font-size: 24rpx;
+  color: #333;
+  flex: 1;
+}
+
+.copy-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-left: 16rpx;
+  opacity: 0.5;
+}
