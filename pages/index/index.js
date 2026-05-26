@@ -6,6 +6,7 @@ Page({
     serverUrl: 'ws://192.168.1.100:3000',
     connectionStatus: '未连接',
     statusClass: 'disconnected',
+    isConnected: false,
     scanIcon: '/assets/scan.svg'
   },
 
@@ -51,14 +52,22 @@ Page({
 
     my.onSocketError((err) => {
       console.error('WebSocket 错误', err);
-      this.setData({ connectionStatus: '连接错误', statusClass: 'error' });
+      this.setData({
+        connectionStatus: '连接错误',
+        statusClass: 'error',
+        isConnected: false
+      });
       my.showToast({ content: '连接错误', duration: 2000 });
       this._isConnecting = false;
     });
 
     my.onSocketClose(() => {
       console.log('WebSocket 连接已关闭');
-      this.setData({ connectionStatus: '已断开', statusClass: 'disconnected' });
+      this.setData({
+        connectionStatus: '已断开',
+        statusClass: 'disconnected',
+        isConnected: false
+      });
       this.stopHeartbeat();
       this._isConnecting = false;
     });
@@ -102,7 +111,11 @@ Page({
       },
       fail: (err) => {
         console.error('WebSocket 连接失败', err);
-        this.setData({ connectionStatus: '连接失败', statusClass: 'error' });
+        this.setData({
+          connectionStatus: '连接失败',
+          statusClass: 'error',
+          isConnected: false
+        });
         my.showToast({ content: '连接失败: ' + JSON.stringify(err), duration: 3000 });
         this._isConnecting = false;
       }
@@ -139,7 +152,8 @@ Page({
           Storage.saveServerUrl(this.data.serverUrl);
           this.setData({
             connectionStatus: '已连接',
-            statusClass: 'connected'
+            statusClass: 'connected',
+            isConnected: true
           });
           my.showToast({ content: '注册成功！', duration: 2000 });
           this.startHeartbeat();
@@ -214,7 +228,11 @@ Page({
   disconnect() {
     this.stopHeartbeat();
     my.closeSocket();
-    this.setData({ connectionStatus: '未连接', statusClass: 'disconnected' });
+    this.setData({
+      connectionStatus: '未连接',
+      statusClass: 'disconnected',
+      isConnected: false
+    });
     my.showToast({ content: '已断开连接', duration: 2000 });
   },
 

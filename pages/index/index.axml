@@ -34,8 +34,8 @@
       <image class="scan-icon" src="{{scanIcon}}" onTap="scanQRCode" />
     </view>
     <view class="button-row">
-      <button class="btn-primary" onTap="connect">连接</button>
-      <button class="btn-secondary" onTap="disconnect">断开</button>
+      <button a:if="{{!isConnected}}" class="btn-primary" onTap="connect">连接</button>
+      <button a:if="{{isConnected}}" class="btn-secondary" onTap="disconnect">断开</button>
     </view>
   </view>
 
