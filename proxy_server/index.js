@@ -16,6 +16,8 @@ const httpHandler = new HttpHandler(
 
 app.use('/api/proxy', httpHandler.getRouter());
 
+proxyServer.start();
+
 const server = proxyServer.getHttpServer();
 
 server.on('request', (req, res) => {
