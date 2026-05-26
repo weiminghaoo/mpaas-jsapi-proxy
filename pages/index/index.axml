@@ -1,0 +1,44 @@
+<view class="container">
+  <view class="header">
+    <text class="title">mPaaS JSAPI 代理</text>
+  </view>
+
+  <view class="card">
+    <view class="card-title">设备信息</view>
+    <view class="info-row">
+      <text class="label">设备ID：</text>
+      <text class="value">{{deviceId}}</text>
+    </view>
+    <view class="button-row" style="margin-top: 20rpx;">
+      <button class="btn-secondary" onTap="copyConnectionParams" style="width: 100%;">复制连接参数</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">连接状态</view>
+    <view class="status-row">
+      <text class="label">状态：</text>
+      <text class="status {{statusClass}}">{{connectionStatus}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">服务器配置</view>
+    <view class="input-row">
+      <input
+        class="server-input"
+        placeholder="ws://192.168.1.100:3000"
+        value="{{serverUrl}}"
+        onInput="onServerUrlInput"
+      />
+    </view>
+    <view class="button-row">
+      <button class="btn-primary" onTap="connect">连接</button>
+      <button class="btn-secondary" onTap="disconnect">断开</button>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="hint-text">连接成功后，点击"复制连接参数"，然后粘贴到模拟器的 app.js 中</text>
+  </view>
+</view>

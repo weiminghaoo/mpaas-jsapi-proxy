@@ -1,4 +1,5 @@
 const DEVICE_ID_KEY = 'proxy_device_id';
+const SERVER_URL_KEY = 'proxy_server_url';
 
 class Storage {
   // 生成唯一设备ID
@@ -33,9 +34,29 @@ class Storage {
     };
   }
 
-  // 清除设备ID（用于测试）
   static clearDeviceId() {
     my.removeStorageSync({ key: DEVICE_ID_KEY });
+  }
+
+  static saveServerUrl(serverUrl) {
+    my.setStorageSync({
+      key: SERVER_URL_KEY,
+      data: serverUrl
+    });
+    console.log('服务器URL已保存:', serverUrl);
+  }
+
+  static getServerUrl() {
+    const result = my.getStorageSync({ key: SERVER_URL_KEY });
+    const serverUrl = result.data;
+    if (serverUrl) {
+      console.log('使用缓存服务器URL:', serverUrl);
+    }
+    return serverUrl;
+  }
+
+  static clearServerUrl() {
+    my.removeStorageSync({ key: SERVER_URL_KEY });
   }
 }
 
