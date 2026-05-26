@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const QRCode = require('qrcode-terminal');
 const { DeviceManager } = require('./device-manager');
 const { MessageRouter } = require('./message-router');
 const { Utils } = require('./utils');
@@ -75,9 +76,17 @@ class ProxyServer {
 ║  请在代理小程序中输入以下地址进行注册                      ║
 ║                                                            ║
 ║  ${serverUrl.padEnd(58)}║                                                   ║
-
+║                                                            ║
+║  或扫描下方二维码快速配置：                                  ║
 ╚════════════════════════════════════════════════════════════╝
     `);
+
+    // 生成二维码
+    console.log('');
+    const qrData = JSON.stringify({
+      url: encodeURIComponent(serverUrl)
+    });
+    QRCode.generate(qrData, { small: true });
   }
 
   // 启动心跳检测
