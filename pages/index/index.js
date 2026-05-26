@@ -5,7 +5,8 @@ Page({
     deviceId: '',
     serverUrl: 'ws://192.168.1.100:3000',
     connectionStatus: '未连接',
-    statusClass: 'disconnected'
+    statusClass: 'disconnected',
+    scanIcon: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZmlsbD0iIzY2NiIgZD0iTTMgM2g2djZIM1Yzem0yIDJ2MmgyVjVINW04LTJoNnY2aC02VjN6bTItMnYyaTJINWgtMnpNMyAxM2g2djZIM3YtNn0yIDJ2Mmgydi0ySDV6MTMtMmgzdjJoLTN2LTJ6bTMwaDJ2MmgtMnYtMnptLTMgMmgydjJoLTJ2LTJ6bTIgMmgydjJoLTJ2LTJ6Ii8+PC9zdmc+'
   },
 
   onLoad() {
@@ -223,5 +224,30 @@ Page({
       text: connectionParams
     });
     my.showToast({ content: '连接参数已复制', duration: 1500 });
+  },
+
+  scanQRCode() {
+    my.scan({
+      type: 'qr',
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.qrCodeResult);
+          if (data.url) {
+            const decodedUrl = decodeURIComponent(data.url);
+            if (decodedUrl.startsWith('ws://') || decodedUrl.startsWith('wss://')) {
+              this.setData({ serverUrl: decodedUrl });
+              my.showToast({ content: '已自动填入服务器地址', duration: 1500 });
+              return;
+            }
+          }
+          my.showToast({ content: '无效的二维码格式', duration: 2000 });
+        } catch (e) {
+          my.showToast({ content: '二维码解析失败', duration: 2000 });
+        }
+      },
+      fail: () => {
+        my.showToast({ content: '扫码失败，请重试', duration: 2000 });
+      }
+    });
   }
 });
