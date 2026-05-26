@@ -1,34 +1,22 @@
-const express = require('express');
 const { ProxyServer } = require('./src/server');
-const { HttpHandler } = require('./src/http-handler');
-const { ResponseQueue } = require('./src/response-queue');
+// const { HttpServer } = require('./src/http-server');
 const config = require('./config');
 
-const app = express();
-app.use(express.json());
-
 const proxyServer = new ProxyServer(config);
-const responseQueue = new ResponseQueue();
-const httpHandler = new HttpHandler(
-  proxyServer.getDeviceManager(),
-  responseQueue
-);
 
-app.use('/api/proxy', httpHandler.getRouter());
+// const httpServer = new HttpServer(proxyServer.deviceManager);
+// proxyServer.messageRouter.setHttpServer(httpServer);
 
+// 启动 WebSocket 服务器
 proxyServer.start();
 
-const server = proxyServer.getHttpServer();
+// // 启动 HTTP 服务器（端口 3001）
+// httpServer.start(3001);
 
-server.on('request', (req, res) => {
-  if (req.url === '/ws' || req.url.startsWith('/ws?')) {
-    return;
-  }
-  app(req, res);
-});
-
+// 优雅退出
 process.on('SIGINT', () => {
   console.log('\n正在关闭服务器...');
   proxyServer.stop();
+  // httpServer.stop();
   process.exit(0);
 });

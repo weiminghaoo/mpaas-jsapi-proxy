@@ -1,4 +1,3 @@
-const http = require('http');
 const WebSocket = require('ws');
 const { DeviceManager } = require('./device-manager');
 const { MessageRouter } = require('./message-router');
@@ -11,22 +10,15 @@ class ProxyServer {
     this.deviceManager = new DeviceManager();
     this.messageRouter = new MessageRouter(this.deviceManager);
     this.wss = null;
-    this.server = null;
     this.heartbeatTimer = null;
   }
 
+  // 启动服务器
   start() {
-    this.server = http.createServer();
-
+    // 创建 WebSocket 服务器
     this.wss = new WebSocket.Server({
-      noServer: true,
+      port: this.config.port,
       path: this.config.wsPath
-    });
-
-    this.server.on('upgrade', (req, socket, head) => {
-      if (req.url === this.config.wsPath || req.url.startsWith(this.config.wsPath + '?')) {
-        this.wss.handleUpgrade(req, socket, head);
-      }
     });
 
     this.wss.on('connection', (ws, req) => {
@@ -37,18 +29,18 @@ class ProxyServer {
       Utils.log(`服务器错误: ${error.message}`, 'error');
     });
 
+    // 启动心跳检测
     this.startHeartbeatCheck();
 
-    this.server.listen(this.config.port, () => {
-      Utils.log(`代理服务器启动成功`, 'success');
-      Utils.log(`监听端口: ${this.config.port}`, 'info');
-      this.displayConnectionInfo();
-    });
+    Utils.log(`代理服务器启动成功`, 'success');
+    Utils.log(`监听端口: ${this.config.port}`, 'info');
+    this.displayConnectionInfo();
   }
 
+  // 处理新连接
   handleConnection(ws, req) {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const clientType = url.searchParams.get('type');
+    const clientType = url.searchParams.get('type'); // 'miniapp' or 'simulator'
 
     Utils.log(`新连接: ${clientType || 'unknown'}`, 'info');
 
@@ -63,6 +55,7 @@ class ProxyServer {
 
     ws.on('close', () => {
       this.deviceManager.disconnect(ws);
+      this.messageRouter.clearPendingCallsForWS(ws);
     });
 
     ws.on('error', (error) => {
@@ -70,9 +63,10 @@ class ProxyServer {
     });
   }
 
+  // 显示连接信息
   displayConnectionInfo() {
     const localIP = Utils.getLocalIP();
-    const serverUrl = Utils.formatServerUrl(localIP, this.config.port, this.config.wsPath);
+    const serverUrl = Utils.formatServerUrl(localIP, this.config.port,'');
 
     console.log(`
 ╔════════════════════════════════════════════════════════════╗
@@ -80,16 +74,13 @@ class ProxyServer {
 ╠════════════════════════════════════════════════════════════╣
 ║  请在代理小程序中输入以下地址进行注册                      ║
 ║                                                            ║
-║  ${serverUrl.padEnd(58)}║
-║                                                            ║
-║  参数: ?type=miniapp                                       ║
-║                                                            ║
-║  完整示例:                                                  ║
-║  ${serverUrl + '?type=miniapp'.padEnd(54)}║
+║  ${serverUrl.padEnd(58)}║                                                   ║
+
 ╚════════════════════════════════════════════════════════════╝
     `);
   }
 
+  // 启动心跳检测
   startHeartbeatCheck() {
     this.heartbeatTimer = setInterval(() => {
       const now = Date.now();
@@ -98,8 +89,8 @@ class ProxyServer {
       for (const [deviceId, device] of this.deviceManager.devices) {
         if (now - device.lastHeartbeat > timeout) {
           Utils.log(`设备心跳超时: ${deviceId}`, 'warn');
-          if (device.miniappWS) {
-            device.miniappWS.close();
+          if (device.ws) {
+            device.ws.close();
           }
           if (device.simulatorWS) {
             device.simulatorWS.close();
@@ -110,6 +101,7 @@ class ProxyServer {
     }, this.config.heartbeatInterval);
   }
 
+  // 停止服务器
   stop() {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -117,19 +109,8 @@ class ProxyServer {
     }
     if (this.wss) {
       this.wss.close();
-    }
-    if (this.server) {
-      this.server.close();
       Utils.log('服务器已关闭', 'info');
     }
-  }
-
-  getDeviceManager() {
-    return this.deviceManager;
-  }
-
-  getHttpServer() {
-    return this.server;
   }
 }
 

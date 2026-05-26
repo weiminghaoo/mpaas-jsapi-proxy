@@ -16,10 +16,53 @@ Page({
       serverUrl: cachedServerUrl || this.data.serverUrl
     });
     this.heartbeatTimer = null;
+    this._isConnecting = false;
+    this._hasSetupListeners = false;
 
     my.setKeepScreenOn({
       keepScreenOn: true
     });
+
+    // 只在页面加载时设置一次事件监听器
+    this.setupSocketListeners();
+  },
+
+  // 设置 WebSocket 事件监听器（只调用一次）
+  setupSocketListeners() {
+    if (this._hasSetupListeners) {
+      return;
+    }
+
+    my.onSocketOpen(() => {
+      console.log('WebSocket 连接已打开');
+      this._isConnecting = false;
+      this.register();
+    });
+
+    my.onSocketMessage((res) => {
+      try {
+        const message = JSON.parse(res.data);
+        this.handleMessage(message);
+      } catch (error) {
+        console.error('消息解析失败', error);
+      }
+    });
+
+    my.onSocketError((err) => {
+      console.error('WebSocket 错误', err);
+      this.setData({ connectionStatus: '连接错误', statusClass: 'error' });
+      my.showToast({ content: '连接错误', duration: 2000 });
+      this._isConnecting = false;
+    });
+
+    my.onSocketClose(() => {
+      console.log('WebSocket 连接已关闭');
+      this.setData({ connectionStatus: '已断开', statusClass: 'disconnected' });
+      this.stopHeartbeat();
+      this._isConnecting = false;
+    });
+
+    this._hasSetupListeners = true;
   },
 
   onUnload() {
@@ -40,6 +83,13 @@ Page({
       return;
     }
 
+    // 防止重复连接
+    if (this._isConnecting) {
+      console.log('正在连接中，请勿重复点击');
+      return;
+    }
+
+    this._isConnecting = true;
     this.setData({ connectionStatus: '连接中', statusClass: 'connecting' });
 
     const wsUrl = serverUrl + '/ws?type=miniapp';
@@ -53,33 +103,8 @@ Page({
         console.error('WebSocket 连接失败', err);
         this.setData({ connectionStatus: '连接失败', statusClass: 'error' });
         my.showToast({ content: '连接失败: ' + JSON.stringify(err), duration: 3000 });
+        this._isConnecting = false;
       }
-    });
-
-    my.onSocketOpen(() => {
-      console.log('WebSocket 连接已打开');
-      this.register();
-    });
-
-    my.onSocketMessage((res) => {
-      try {
-        const message = JSON.parse(res.data);
-        this.handleMessage(message);
-      } catch (error) {
-        console.error('消息解析失败', error);
-      }
-    });
-
-    my.onSocketError((err) => {
-      console.error('WebSocket 错误', err);
-      this.setData({ connectionStatus: '连接错误', statusClass: 'error' });
-      my.showToast({ content: '连接错误', duration: 2000 });
-    });
-
-    my.onSocketClose(() => {
-      console.log('WebSocket 连接已关闭');
-      this.setData({ connectionStatus: '已断开', statusClass: 'disconnected' });
-      this.stopHeartbeat();
     });
   },
 
@@ -120,7 +145,7 @@ Page({
         }
         break;
 
-      case 'call':
+      case 'client_call':
         this.handleApiCall(message);
         break;
 
