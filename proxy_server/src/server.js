@@ -83,7 +83,7 @@ class ProxyServer {
 
     // 生成二维码
     console.log('')
-    const qrData = JSON.stringify({ url: serverUrl })
+    const qrData =  `url=${encodeURIComponent(serverUrl)}`
 
     QRCode.generate(qrData, { small: true })
   }

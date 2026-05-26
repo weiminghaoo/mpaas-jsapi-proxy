@@ -3,6 +3,8 @@ class MyCallProxy {
     this.serverUrl = serverUrl;
     this.pendingCalls = new Map(); // msgId → { callback, timestamp }
     this.isConnected = false;
+    this.isConnecting = false; // 连接中状态
+    this.connectPromise = null; // 连接 Promise
     this.originalMyCall = null;
     this.msgIdCounter = 0;
     this._deviceIdCache = null; // 缓存解析后的 deviceId
@@ -23,6 +25,13 @@ class MyCallProxy {
     my.call = function(api, params, callback) {
       if (self.isConnected) {
         self.proxyCall(api, params, callback);
+      } else if (self.isConnecting) {
+        // 连接中，等待连接完成
+        console.log(`[代理连接中] 等待连接: ${api}`);
+        self.waitForConnection().then(() => {
+          console.log(`[代理连接中] 连接完成，发送: ${api}`);
+          self.proxyCall(api, params, callback);
+        });
       } else {
         console.warn('[代理未连接] 使用原始 my.call');
         self.originalMyCall.call(this, api, params, callback);
@@ -50,6 +59,13 @@ class MyCallProxy {
     const wsUrl = this.buildWebSocketUrl('/ws', { type: 'simulator' });
     console.log('[MyCallProxy] WebSocket URL:', wsUrl);
 
+    // 创建连接 Promise
+    this.isConnecting = true;
+    this.connectPromise = new Promise((resolve, reject) => {
+      this._resolveConnect = resolve;
+      this._rejectConnect = reject;
+    });
+
     try {
       my.connectSocket({
         url: wsUrl,
@@ -58,14 +74,22 @@ class MyCallProxy {
         },
         fail: (err) => {
           console.error('[MyCallProxy] WebSocket 连接失败', err);
+          this.isConnecting = false;
           this.isConnected = false;
+          if (this._rejectConnect) {
+            this._rejectConnect(err);
+          }
         }
       });
 
       // 监听连接打开
       my.onSocketOpen(() => {
         console.log('[MyCallProxy] 🔗 已连接到代理服务器');
+        this.isConnecting = false;
         this.isConnected = true;
+        if (this._resolveConnect) {
+          this._resolveConnect();
+        }
       });
 
       // 监听消息
@@ -81,17 +105,26 @@ class MyCallProxy {
       // 监听错误
       my.onSocketError((err) => {
         console.error('[MyCallProxy] WebSocket 错误:', err);
+        this.isConnecting = false;
         this.isConnected = false;
+        if (this._rejectConnect) {
+          this._rejectConnect(err);
+        }
       });
 
       // 监听关闭
       my.onSocketClose(() => {
         console.warn('[MyCallProxy] WebSocket 连接已关闭');
+        this.isConnecting = false;
         this.isConnected = false;
         this.rejectPendingCalls('连接已断开');
       });
     } catch (error) {
       console.error('[MyCallProxy] 连接失败:', error);
+      this.isConnecting = false;
+      if (this._rejectConnect) {
+        this._rejectConnect(error);
+      }
     }
   }
 
@@ -236,9 +269,18 @@ class MyCallProxy {
     return match ? match[1] : null;
   }
 
+  // 等待连接完成
+  waitForConnection() {
+    if (!this.connectPromise) {
+      return Promise.reject(new Error('连接未初始化'));
+    }
+    return this.connectPromise;
+  }
+
   // 销毁代理
   destroy() {
     this.isConnected = false;
+    this.isConnecting = false;
     my.closeSocket();
     if (this.originalMyCall) {
       my.call = this.originalMyCall;
@@ -257,7 +299,4 @@ class MyCallProxy {
   }
 }
 
-// 支持 CommonJS
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { MyCallProxy };
-}
+export default MyCallProxy

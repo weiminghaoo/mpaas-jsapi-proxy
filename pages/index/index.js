@@ -1,4 +1,5 @@
 const { Storage } = require('../../utils/storage')
+const { parseUrlString } = require('/utils/urlParser')
 
 Page({
   data: {
@@ -244,51 +245,25 @@ Page({
     my.showToast({ content: '连接参数已复制', duration: 1500 })
   },
 
-  // 通用二维码解析方法
-  parseQRCodeData(code) {
-    try {
-      // 尝试解析为 JSON
-      const jsonMatch = code.match(/^\{.*\}$/)
-      if (jsonMatch) {
-        const data = JSON.parse(code)
-        if (data.url) {
-          return data.url
-        }
-      }
-
-      // 尝试解析为 URL 参数格式：url=ws://xxx
-      const urlMatch = code.match(/^url=(.+)$/)
-      if (urlMatch) {
-        return decodeURIComponent(urlMatch[1])
-      }
-
-      // 直接使用扫码结果（如果是 WebSocket URL）
-      if (code.startsWith('ws://') || code.startsWith('wss://')) {
-        return code
-      }
-
-      return null
-    } catch (e) {
-      console.error('二维码解析失败:', e)
-      return null
-    }
-  },
-
   scanQRCode() {
     my.scan({
       type: 'qr',
       success: (res) => {
         const code = res.code
         console.log('扫码结果:', code)
+        const urlParams = parseUrlString(code)
 
-        const serverUrl = this.parseQRCodeData(code)
-        if (serverUrl) {
-          console.log('解析后的 URL:', serverUrl)
-          this.setData({ serverUrl })
-          my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
-        } else {
-          my.showToast({ content: '无效的二维码格式', duration: 2000 })
+        // 解析 URL 中的参数 url=ws://192.168.0.12:3000
+        if (urlParams.url) {
+          const decodedUrl = urlParams.url
+          console.log('解析后的 URL:', decodedUrl)
+          if (decodedUrl.startsWith('ws://') || decodedUrl.startsWith('wss://')) {
+            this.setData({ serverUrl: decodedUrl })
+            my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
+            return
+          }
         }
+        my.showToast({ content: '无效的二维码格式', duration: 2000 })
       },
       fail: () => {
         my.showToast({ content: '扫码失败，请重试', duration: 2000 })
