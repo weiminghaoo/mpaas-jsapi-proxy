@@ -1,8 +1,7 @@
 {
   "subPackageBuildType": "shared",
   "pages": [
-    "pages/index/index",
-    "pages/proxy/proxy"
+    "pages/index/index"
   ],
   "window": {
     "defaultTitle": "My App"
