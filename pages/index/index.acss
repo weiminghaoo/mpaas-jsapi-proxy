@@ -108,3 +108,23 @@
   font-size: 24rpx;
   color: #999;
 }
+
+/* 扫码按钮样式 */
+.input-row-scan {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-bottom: 20rpx;
+}
+
+.input-row-scan .server-input {
+  padding-right: 60rpx;
+}
+
+.scan-icon {
+  width: 40rpx;
+  height: 40rpx;
+  position: absolute;
+  right: 20rpx;
+  cursor: pointer;
+}
