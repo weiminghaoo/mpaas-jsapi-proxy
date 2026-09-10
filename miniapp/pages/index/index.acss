@@ -194,3 +194,100 @@
   color: #999;
   font-style: italic;
 }
+
+/* 运行日志 */
+.log-actions {
+  margin-bottom: 12rpx;
+}
+
+.btn-mini {
+  font-size: 22rpx;
+  padding: 0 20rpx;
+  margin: 0;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 2.4;
+}
+
+.log-list {
+  max-height: 46vh;
+  overflow-y: scroll;
+}
+
+.log-item {
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.log-time {
+  font-size: 20rpx;
+  color: #bbb;
+  margin-right: 10rpx;
+}
+
+.log-tag {
+  font-size: 22rpx;
+  color: #1890ff;
+  margin-right: 10rpx;
+}
+
+.log-text {
+  font-size: 22rpx;
+  color: #666;
+  word-break: break-all;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+/* 使用说明 popup */
+.popup-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup {
+  width: 86%;
+  max-height: 80vh;
+  background-color: white;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-sizing: border-box;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.popup-close {
+  font-size: 44rpx;
+  color: #999;
+  padding: 0 12rpx;
+  line-height: 1;
+}
+
+.popup-body {
+  max-height: 64vh;
+  overflow-y: scroll;
+}
