@@ -444,8 +444,12 @@ class MyCallProxy {
   private overrideEventApi(api: string): void {
     this.originalNamedApis.set(api, (my as any)[api])
     const self = this
-    ;(my as any)[api] = (cb: (data: any) => void) => {
-      if (typeof cb !== 'function') {
+    // 兼容两种监听写法：my.onXxx(cb) 与 my.onXxx({ success: cb })
+    ;(my as any)[api] = (arg: ((data: any) => void) | { success?: (data: any) => void }) => {
+      const listener =
+        typeof arg === 'function' ? arg : arg && typeof arg.success === 'function' ? arg.success : null
+      if (!listener) {
+        console.warn(`[MyCallProxy] ${api} 参数既不是函数也不是含 success 的对象，调用被忽略`)
         return
       }
       let listeners = self.eventListeners.get(api)
@@ -453,7 +457,7 @@ class MyCallProxy {
         listeners = new Set()
         self.eventListeners.set(api, listeners)
       }
-      listeners.add(cb)
+      listeners.add(listener)
       self.ensureSubscribed(api)
     }
   }
