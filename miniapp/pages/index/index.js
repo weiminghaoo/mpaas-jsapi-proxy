@@ -1,6 +1,17 @@
 import { Storage } from '../../utils/storage'
 import { parseUrlString } from '../../utils/urlParser'
 
+// 蓝牙解绑类 API 白名单（与 src/bluetooth-apis.ts 的 BLUETOOTH_EVENT_APIS 前缀替换结果保持一致）
+// 显式列举而非按 /^off/ 前缀拦截，避免误伤名字以 off 开头的业务自定义 API
+const BLUETOOTH_OFF_APIS = [
+  'offBluetoothAdapterStateChange',
+  'offBluetoothDeviceFound',
+  'offBLEConnectionStateChanged',
+  'offBLECharacteristicValueChange',
+  'offBeaconUpdate',
+  'offBeaconServiceChange',
+]
+
 Page({
   data: {
     deviceId: '',
@@ -206,27 +217,102 @@ Page({
   },
 
   handleApiCall(message) {
-    const { msgId, api, params } = message
+    const { msgId, api, params, proxyMode } = message
 
     console.log('执行 API 调用:', api, params)
 
+    // 事件订阅类：注册真机监听，多次回发 event
+    if (proxyMode === 'event') {
+      this.handleEventSubscribe(message)
+      return
+    }
+
+    // 蓝牙解绑类：泛化 my.call 对监听解绑不生效，必须用具名 API
+    if (BLUETOOTH_OFF_APIS.indexOf(api) !== -1 && typeof my[api] === 'function') {
+      try {
+        my[api]()
+      } catch (e) {
+        console.error('解绑失败', e)
+      }
+      this.sendResponse(msgId, { success: true })
+      return
+    }
+
     my.call(api, params || {}, (result) => {
       console.log('API 返回结果:', result)
+      this.sendResponse(msgId, result)
+    })
+  },
 
-      const response = {
+  // 订阅事件：先解绑旧监听（幂等，防重连后重复事件），再注册转发
+  handleEventSubscribe(message) {
+    const { msgId, api } = message
+    const offApi = api.replace(/^on/, 'off')
+    if (typeof my[offApi] === 'function') {
+      try {
+        my[offApi]()
+      } catch (e) {
+        console.error('清理旧监听失败', e)
+      }
+    }
+    const native = my[api]
+    if (typeof native !== 'function') {
+      console.error('真机不支持事件 API:', api)
+      // 用 type:'error' 回报（携带 api），不伪装成事件污染业务回调
+      this.sendSubscriptionError(msgId, api, 'unsupported api: ' + api)
+      return
+    }
+    native((data) => {
+      console.log('事件触发:', api, data)
+      this.sendEvent(msgId, api, data)
+    })
+    console.log('已注册事件监听:', api)
+  },
+
+  sendEvent(msgId, api, data) {
+    my.sendSocketMessage({
+      data: JSON.stringify({
+        type: 'event',
+        msgId: msgId,
+        api: api,
+        deviceId: this.data.deviceId,
+        timestamp: Date.now(),
+        data: data,
+      }),
+      fail: (err) => {
+        console.error('事件发送失败', err)
+      },
+    })
+  },
+
+  sendSubscriptionError(msgId, api, message) {
+    my.sendSocketMessage({
+      data: JSON.stringify({
+        type: 'error',
+        msgId: msgId,
+        api: api,
+        deviceId: this.data.deviceId,
+        timestamp: Date.now(),
+        error: { code: 'API_NOT_FOUND', message: message },
+      }),
+      fail: (err) => {
+        console.error('订阅错误上报失败', err)
+      },
+    })
+  },
+
+  sendResponse(msgId, result) {
+    my.sendSocketMessage({
+      data: JSON.stringify({
         type: 'response',
         msgId: msgId,
         deviceId: this.data.deviceId,
         timestamp: Date.now(),
         result: result,
-      }
-
-      my.sendSocketMessage({
-        data: JSON.stringify(response),
-        fail: (err) => {
-          console.error('响应发送失败', err)
-        },
-      })
+      }),
+      fail: (err) => {
+        console.error('响应发送失败', err)
+      },
     })
   },
 
