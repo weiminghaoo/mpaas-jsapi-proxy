@@ -123,8 +123,11 @@ class MyCallProxy {
     this.options = options
   }
 
-  // 初始化代理
-  init(): boolean {
+  // 初始化代理（兼容把选项写在 init 里：proxy.init({ bluetooth: true })，防止误传被静默忽略）
+  init(options?: MyCallProxyOptions): boolean {
+    if (options) {
+      this.options = Object.assign({}, this.options, options)
+    }
     if (typeof my === 'undefined' || typeof my.call !== 'function') {
       console.error('my.call 不存在，无法初始化代理')
       return false
