@@ -39,12 +39,35 @@ export class DeviceManager {
     }
   }
 
-  // 断开连接
+  // 注册模拟器连接（role: simulator，服务端用于事件推送寻址）
+  registerSimulator(deviceId: string, ws: WebSocket): void {
+    let device = this.devices.get(deviceId);
+    if (!device) {
+      device = { ws: null, simulatorWS: null, deviceInfo: {}, lastHeartbeat: Date.now() };
+      this.devices.set(deviceId, device);
+    }
+    device.simulatorWS = ws;
+    device.lastHeartbeat = Date.now();
+    Utils.log(`模拟器注册成功: ${deviceId}`, 'success');
+  }
+
+  // 断开连接（区分真机与模拟器，只清对应连接）
   disconnect(ws: WebSocket): boolean {
     for (const [deviceId, device] of this.devices) {
       if (device.ws === ws) {
-        this.devices.delete(deviceId);
+        device.ws = null;
+        if (!device.simulatorWS) {
+          this.devices.delete(deviceId);
+        }
         Utils.log(`设备断开连接: ${deviceId}`, 'warn');
+        return true;
+      }
+      if (device.simulatorWS === ws) {
+        device.simulatorWS = null;
+        if (!device.ws) {
+          this.devices.delete(deviceId);
+        }
+        Utils.log(`模拟器断开连接: ${deviceId}`, 'warn');
         return true;
       }
     }
