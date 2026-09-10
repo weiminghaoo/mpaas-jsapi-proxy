@@ -518,6 +518,9 @@ class MyCallProxy {
     }
     my.sendSocketMessage({
       data: JSON.stringify(message),
+      success: () => {
+        console.log(`[MyCallProxy] 📤 订阅: ${api} (事件模式)`)
+      },
       fail: (err) => {
         this.subscribedApis.delete(api)
         console.error(`[MyCallProxy] 事件订阅发送失败: ${api}`, err)
