@@ -1,16 +1,33 @@
 import { Storage } from '../../utils/storage'
 import { parseUrlString } from '../../utils/urlParser'
 
-const PROXY_CODE_URL = 'https://s.xiaolianhb.com/xlmpaas/scripts/my-call-proxy.js'
-
 Page({
   data: {
     deviceId: '',
     serverUrl: 'ws://192.168.1.100:3000',
+    clientUsageSnippet: '',
     connectionStatus: '未连接',
     statusClass: 'disconnected',
     isConnected: false,
     scanIcon: '/assets/scan.svg',
+  },
+
+  // 模拟器客户端接入代码（自动填入当前服务器地址与设备ID）
+  buildClientUsageSnippet(serverUrl, deviceId) {
+    return [
+      "import MyCallProxy from 'mpaas-jsapi-proxy'",
+      '',
+      `const proxy = new MyCallProxy('${serverUrl}?deviceId=${deviceId}');`,
+      'proxy.init();',
+    ].join('\n')
+  },
+
+  // 更新服务器地址并同步刷新接入代码
+  applyServerUrl(serverUrl) {
+    this.setData({
+      serverUrl,
+      clientUsageSnippet: this.buildClientUsageSnippet(serverUrl, this.data.deviceId),
+    })
   },
 
   onLoad() {
@@ -25,9 +42,11 @@ Page({
       appQueryUrl = appQuery.url
     }
 
+    const serverUrl = appQueryUrl || cachedServerUrl || this.data.serverUrl
     this.setData({
       deviceId,
-      serverUrl: appQueryUrl || cachedServerUrl || this.data.serverUrl,
+      serverUrl,
+      clientUsageSnippet: this.buildClientUsageSnippet(serverUrl, deviceId),
     })
     this.heartbeatTimer = null
     this._isConnecting = false
@@ -95,7 +114,7 @@ Page({
   },
 
   onServerUrlInput(e) {
-    this.setData({ serverUrl: e.detail.value })
+    this.applyServerUrl(e.detail.value)
   },
 
   connect() {
@@ -258,49 +277,23 @@ Page({
 
   copyInstallCommand() {
     my.setClipboard({
-      text: 'npm install -g mpaas-jsapi-proxy',
+      text: 'npm install -g mpaas-jsapi-proxy && mpaas-jsapi-proxy',
+    })
+    my.showToast({ content: '安装启动命令已复制', duration: 1500 })
+  },
+
+  copyClientInstall() {
+    my.setClipboard({
+      text: 'npm install mpaas-jsapi-proxy --save',
     })
     my.showToast({ content: '安装命令已复制', duration: 1500 })
   },
 
-  copyStartCommand() {
+  copyClientUsage() {
     my.setClipboard({
-      text: 'mpaas-jsapi-proxy',
+      text: this.data.clientUsageSnippet,
     })
-    my.showToast({ content: '启动命令已复制', duration: 1500 })
-  },
-
-  copyClientProxyCode() {
-    // 如果已经下载过，直接复制缓存的代码
-    if (this._cachedProxyCode) {
-      my.setClipboard({
-        text: this._cachedProxyCode,
-      })
-      my.showToast({ content: '客户端代码已复制', duration: 1500 })
-      return
-    }
-
-    my.showToast({ content: '正在下载代理代码...', duration: 1000 })
-
-    my.request({
-      url: PROXY_CODE_URL,
-      method: 'GET',
-      dataType: 'text',
-      success: (res) => {
-        console.log('下载成功:', res)
-
-        // 缓存代码内容
-        this._cachedProxyCode = res.data
-        my.setClipboard({
-          text: this._cachedProxyCode,
-        })
-        my.showToast({ content: '客户端代码已复制', duration: 1500 })
-      },
-      fail: (err) => {
-        console.error('下载失败:', err)
-        my.showToast({ content: '下载代理代码失败', duration: 2000 })
-      },
-    })
+    my.showToast({ content: '接入代码已复制', duration: 1500 })
   },
 
   scanQRCode() {
@@ -316,7 +309,7 @@ Page({
           const decodedUrl = urlParams.url
           console.log('解析后的 URL:', decodedUrl)
           if (decodedUrl.startsWith('ws://') || decodedUrl.startsWith('wss://')) {
-            this.setData({ serverUrl: decodedUrl })
+            this.applyServerUrl(decodedUrl)
             my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
             return
           }

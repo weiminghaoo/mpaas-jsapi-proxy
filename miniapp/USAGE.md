@@ -10,10 +10,19 @@
 
 ### 1. 启动代理服务器
 
+在仓库根目录（主项目）执行：
+
 ```bash
-cd proxy_server
-npm install
-npm start
+pnpm install
+pnpm run build
+pnpm start
+```
+
+或全局安装后直接运行：
+
+```bash
+npm install -g mpaas-jsapi-proxy
+mpaas-jsapi-proxy
 ```
 
 服务器会显示：
@@ -31,15 +40,22 @@ npm start
 
 ### 3. 配置模拟器客户端
 
-打开 `app.js`，将从真机复制的连接参数粘贴进去：
+在模拟器项目中安装 npm 包：
+
+```bash
+npm install mpaas-jsapi-proxy --save
+```
+
+打开 `app.js`，从 npm 包引入客户端代理，并填入从真机复制的连接参数：
 
 ```javascript
-const { MyCallProxy } = require('./my-call-proxy');
+import MyCallProxy from 'mpaas-jsapi-proxy';
 
-// 粘贴从真机复制的连接参数（记得加引号）
 const proxy = new MyCallProxy('ws://192.168.0.12:3000?deviceId=device_1716732000000_abc123def');
 proxy.init();
 ```
+
+也可以直接在小程序页面点击"模拟器客户端接入"中的初始化代码，复制已自动填入服务器地址与设备ID的接入片段。
 
 **提示**：复制的是纯文本，粘贴到代码时记得加上单引号或双引号。
 
@@ -91,9 +107,10 @@ my.call('xlGetAppInfo', {}, (result) => {
 
 ### 查看服务器日志
 
+在仓库根目录执行：
+
 ```bash
-cd proxy_server
-npm start
+pnpm start
 ```
 
 服务器会显示：

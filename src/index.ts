@@ -1,19 +1,77 @@
-// my-call-proxy.js
+// 模拟器端 my.call 代理客户端
+// 通过 WebSocket 将模拟器中的 my.call 调用转发到真机执行
+//
+// 使用方法：
+// import MyCallProxy from 'mpaas-jsapi-proxy';
+// const proxy = new MyCallProxy('ws://192.168.1.100:3000?deviceId=device_xxx');
+// proxy.init();
+
+/** my.call 回调 */
+type CallCallback = (result: any) => void
+
+/** 原始 my.call 函数签名 */
+type CallFunction = (
+  api: string,
+  params: Record<string, unknown>,
+  callback?: CallCallback
+) => void
+
+/** 代理服务器消息 */
+interface ProxyMessage {
+  type: string
+  msgId: string
+  deviceId?: string
+  timestamp?: number
+  api?: string
+  params?: Record<string, unknown>
+  result?: unknown
+  error?: { message?: string } & Record<string, unknown>
+}
+
+/** 等待响应中的调用 */
+interface PendingCall {
+  callback: CallCallback
+  timestamp: number
+}
+
+/** mPaaS 小程序全局对象（仅声明本模块用到的 API） */
+declare const my: {
+  call: CallFunction
+  connectSocket: (options: {
+    url: string
+    success?: () => void
+    fail?: (err: unknown) => void
+  }) => void
+  onSocketOpen: (callback: () => void) => void
+  onSocketMessage: (callback: (res: { data: string }) => void) => void
+  onSocketError: (callback: (err: unknown) => void) => void
+  onSocketClose: (callback: () => void) => void
+  sendSocketMessage: (options: {
+    data: string
+    success?: () => void
+    fail?: (err: unknown) => void
+  }) => void
+  closeSocket: (options?: Record<string, unknown>) => void
+}
 
 class MyCallProxy {
-  constructor(serverUrl) {
+  private serverUrl: string
+  private pendingCalls = new Map<string, PendingCall>() // msgId → { callback, timestamp }
+  private isConnected = false
+  private isConnecting = false // 连接中状态
+  private connectPromise: Promise<void> | null = null // 连接 Promise
+  private originalMyCall: CallFunction | null = null
+  private msgIdCounter = 0
+  private _deviceIdCache: string | null = null // 缓存解析后的 deviceId
+  private _resolveConnect: (() => void) | null = null
+  private _rejectConnect: ((reason?: unknown) => void) | null = null
+
+  constructor(serverUrl: string) {
     this.serverUrl = serverUrl
-    this.pendingCalls = new Map() // msgId → { callback, timestamp }
-    this.isConnected = false
-    this.isConnecting = false // 连接中状态
-    this.connectPromise = null // 连接 Promise
-    this.originalMyCall = null
-    this.msgIdCounter = 0
-    this._deviceIdCache = null // 缓存解析后的 deviceId
   }
 
   // 初始化代理
-  init() {
+  init(): boolean {
     if (typeof my === 'undefined' || typeof my.call !== 'function') {
       console.error('my.call 不存在，无法初始化代理')
       return false
@@ -24,7 +82,7 @@ class MyCallProxy {
 
     // 劫持 my.call
     const self = this
-    my.call = function (api, params, callback) {
+    my.call = (api, params, callback) => {
       if (self.isConnected) {
         self.proxyCall(api, params, callback)
       } else if (self.isConnecting) {
@@ -36,7 +94,9 @@ class MyCallProxy {
         })
       } else {
         console.warn('[代理未连接] 使用原始 my.call')
-        self.originalMyCall.call(this, api, params, callback)
+        if (self.originalMyCall) {
+          self.originalMyCall(api, params, callback)
+        }
       }
     }
 
@@ -46,7 +106,7 @@ class MyCallProxy {
   }
 
   // 连接到代理服务器
-  connect() {
+  connect(): void {
     const deviceId = this.getDeviceId()
 
     if (!deviceId) {
@@ -62,7 +122,7 @@ class MyCallProxy {
 
     // 创建连接 Promise
     this.isConnecting = true
-    this.connectPromise = new Promise((resolve, reject) => {
+    this.connectPromise = new Promise<void>((resolve, reject) => {
       this._resolveConnect = resolve
       this._rejectConnect = reject
     })
@@ -96,7 +156,7 @@ class MyCallProxy {
       // 监听消息
       my.onSocketMessage((res) => {
         try {
-          const message = JSON.parse(res.data)
+          const message: ProxyMessage = JSON.parse(res.data)
           this.handleMessage(message)
         } catch (error) {
           console.error('[MyCallProxy] 消息解析失败:', error)
@@ -130,7 +190,7 @@ class MyCallProxy {
   }
 
   // 代理调用
-  proxyCall(api, params, callback) {
+  proxyCall(api: string, params: Record<string, unknown>, callback?: CallCallback): void {
     const msgId = this.generateMsgId()
     const deviceId = this.getDeviceId()
 
@@ -146,7 +206,7 @@ class MyCallProxy {
       timestamp: Date.now(),
     })
 
-    const message = {
+    const message: ProxyMessage = {
       type: 'client_call',
       msgId: msgId,
       deviceId: deviceId,
@@ -175,7 +235,7 @@ class MyCallProxy {
   }
 
   // 处理响应消息
-  handleMessage(message) {
+  handleMessage(message: ProxyMessage): void {
     const { type, msgId, result, error } = message
 
     if (type === 'response') {
@@ -198,15 +258,15 @@ class MyCallProxy {
   }
 
   // 回退到原始 my.call
-  fallbackToOriginal(api, params, callback) {
+  fallbackToOriginal(api: string, params: Record<string, unknown>, callback?: CallCallback): void {
     console.warn('[MyCallProxy] 回退到原始 my.call')
     if (this.originalMyCall) {
-      this.originalMyCall.call(this, api, params, callback)
+      this.originalMyCall(api, params, callback)
     }
   }
 
   // 拒绝所有等待中的调用
-  rejectPendingCalls(reason) {
+  rejectPendingCalls(reason: string): void {
     for (const [msgId, pending] of this.pendingCalls) {
       pending.callback({ error: { message: reason, msgId: msgId } })
     }
@@ -214,12 +274,12 @@ class MyCallProxy {
   }
 
   // 生成消息ID
-  generateMsgId() {
+  generateMsgId(): string {
     return 'msg_' + Date.now() + '_' + ++this.msgIdCounter
   }
 
   // 获取设备ID（带缓存）
-  getDeviceId() {
+  getDeviceId(): string | null {
     if (this._deviceIdCache) {
       return this._deviceIdCache
     }
@@ -230,7 +290,7 @@ class MyCallProxy {
   }
 
   // 构建带路径和参数的 WebSocket URL
-  buildWebSocketUrl(path, extraParams = {}) {
+  buildWebSocketUrl(path: string, extraParams: Record<string, string> = {}): string {
     const urlMatch = this.serverUrl.match(/^(https?:\/\/|wss?:\/\/)([^\\/?]+)(.*)$/)
     if (!urlMatch) {
       return this.serverUrl
@@ -238,7 +298,7 @@ class MyCallProxy {
 
     const [, protocol, host, rest] = urlMatch
 
-    let existingParams = {}
+    const existingParams: Record<string, string> = {}
     const queryMatch = rest.match(/\?([^#]*)/)
     if (queryMatch) {
       const queryString = queryMatch[1]
@@ -259,7 +319,7 @@ class MyCallProxy {
   }
 
   // 等待连接完成
-  waitForConnection() {
+  waitForConnection(): Promise<void> {
     if (!this.connectPromise) {
       return Promise.reject(new Error('连接未初始化'))
     }
@@ -267,7 +327,7 @@ class MyCallProxy {
   }
 
   // 销毁代理
-  destroy() {
+  destroy(): void {
     this.isConnected = false
     this.isConnecting = false
     my.closeSocket()
@@ -279,7 +339,7 @@ class MyCallProxy {
   }
 
   // 获取连接状态
-  getStatus() {
+  getStatus(): { isConnected: boolean; pending_calls: number; serverUrl: string } {
     return {
       isConnected: this.isConnected,
       pending_calls: this.pendingCalls.size,
@@ -287,8 +347,5 @@ class MyCallProxy {
     }
   }
 }
-export default MyCallProxy
 
-// 使用方法：
-// const proxy = new MyCallProxy('ws://192.168.1.100:3000?deviceId=device_xxx');
-// proxy.init();
+export default MyCallProxy

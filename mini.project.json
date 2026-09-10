@@ -1,6 +1,0 @@
-{
-  "component2": true,
-  "exclude": [
-    "proxy_server"
-  ]
-}

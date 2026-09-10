@@ -1,5 +1,6 @@
 // example-usage.js
-import MyCallProxy from './proxy_client/my-call-proxy.js';
+// 模拟器项目需先执行：npm install mpaas-jsapi-proxy --save
+import MyCallProxy from 'mpaas-jsapi-proxy';
 
 // ⚠️ 重要：使用从真机小程序复制的设备ID
 // 步骤：

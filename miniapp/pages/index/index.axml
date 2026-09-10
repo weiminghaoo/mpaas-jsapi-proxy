@@ -1,0 +1,59 @@
+<view class="container">
+  <view class="header">
+    <text class="title">mPaaS JSAPI 代理</text>
+  </view>
+
+  <view class="card">
+    <view class="card-title">设备与状态</view>
+    <view class="info-row">
+      <text class="label">设备ID：</text>
+      <text class="value">{{deviceId}}</text>
+    </view>
+    <view class="info-row divider">
+      <text class="label">状态：</text>
+      <text class="status {{statusClass}}">{{connectionStatus}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">服务器配置</view>
+    <view class="input-row-scan">
+      <input
+        class="server-input"
+        placeholder="ws://192.168.1.100:3000"
+        value="{{serverUrl}}"
+        onInput="onServerUrlInput"
+      />
+      <image class="scan-icon" src="{{scanIcon}}" onTap="scanQRCode" />
+    </view>
+    <view class="button-row">
+      <button a:if="{{!isConnected}}" class="btn-primary" onTap="connect">连接</button>
+      <button a:if="{{isConnected}}" class="btn-secondary" onTap="disconnect">断开</button>
+      <button class="btn-secondary" onTap="copyConnectionParams">复制连接参数</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">使用说明</view>
+
+    <view class="section-label">服务器</view>
+    <view class="code-block" onTap="copyInstallCommand">
+      <text class="code-text">npm install -g mpaas-jsapi-proxy && mpaas-jsapi-proxy</text>
+      <image class="copy-icon" src="/assets/copy.svg" />
+    </view>
+
+    <view class="section-label">模拟器客户端</view>
+    <view class="code-block" onTap="copyClientInstall">
+      <text class="code-text">npm install mpaas-jsapi-proxy --save</text>
+      <image class="copy-icon" src="/assets/copy.svg" />
+    </view>
+    <view class="code-block" onTap="copyClientUsage">
+      <text class="code-text">{{clientUsageSnippet}}</text>
+      <image class="copy-icon" src="/assets/copy.svg" />
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="hint-text">上方初始化代码已自动填入当前服务器地址与设备ID，点击复制后粘贴到模拟器项目的 app.js 中即可</text>
+  </view>
+</view>

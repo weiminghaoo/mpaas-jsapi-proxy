@@ -5,6 +5,7 @@ export default defineConfig({
     lib: {
       entry: {
         index: './src/index.ts',
+        server: './src/server/index.ts',
       },
       formats: ['cjs'],
       fileName: (format, entryName) => `${entryName}.js`

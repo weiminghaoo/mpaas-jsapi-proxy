@@ -6,7 +6,7 @@
 
 .header {
   text-align: center;
-  padding: 40rpx 0;
+  padding: 24rpx 0 12rpx;
 }
 
 .title {
@@ -18,20 +18,27 @@
 .card {
   background-color: white;
   border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .card-title {
   font-size: 28rpx;
   font-weight: bold;
   color: #333;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 
-.info-row, .status-row {
+.info-row {
   display: flex;
   align-items: center;
+}
+
+/* 卡片内多行信息之间的分隔 */
+.info-row.divider {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
 }
 
 .label {
@@ -101,7 +108,7 @@
 
 .footer {
   text-align: center;
-  padding: 40rpx 0;
+  padding: 20rpx 0 40rpx;
 }
 
 .hint-text {
@@ -128,6 +135,17 @@
   right: 16rpx;
 }
 
+/* 小节标签（卡片内分组标题） */
+.section-label {
+  font-size: 24rpx;
+  color: #999;
+  margin: 20rpx 0 8rpx;
+}
+
+.card-title + .section-label {
+  margin-top: 0;
+}
+
 /* 代码块样式 */
 .code-block {
   display: flex;
@@ -136,8 +154,12 @@
   background-color: #f6f6f6;
   border: 1px solid #e8e8e8;
   border-radius: 8rpx;
-  padding: 20rpx;
-  margin-top: 10rpx;
+  padding: 16rpx 20rpx;
+  margin-top: 8rpx;
+}
+
+.code-block + .code-block {
+  margin-top: 12rpx;
 }
 
 .code-text {
@@ -145,6 +167,8 @@
   font-size: 24rpx;
   color: #333;
   flex: 1;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .copy-icon {

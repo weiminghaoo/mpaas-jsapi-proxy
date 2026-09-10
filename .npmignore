@@ -3,6 +3,9 @@ src/
 tsconfig.json
 vite.config.ts
 
+# 小程序子项目
+miniapp/
+
 # 开发配置
 .*
 !/.npmignore
