@@ -20,7 +20,7 @@ export default defineConfig({
     },
     minify: 'esbuild',
     sourcemap: false,
-    target: 'node18',
+    target: 'es2015',
     ssr: true
   }
 });
