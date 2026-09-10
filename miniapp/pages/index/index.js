@@ -269,6 +269,16 @@ Page({
     console.log('已注册事件监听:', api)
   },
 
+  // 剔除真机容器注入的 NBPageUrl（JSAPI 回调自带，对模拟器端是噪音且泄漏内部 URL）
+  stripContainerFields(value) {
+    if (value && typeof value === 'object' && 'NBPageUrl' in value) {
+      const copy = Object.assign({}, value)
+      delete copy.NBPageUrl
+      return copy
+    }
+    return value
+  },
+
   sendEvent(msgId, api, data) {
     my.sendSocketMessage({
       data: JSON.stringify({
@@ -277,7 +287,7 @@ Page({
         api: api,
         deviceId: this.data.deviceId,
         timestamp: Date.now(),
-        data: data,
+        data: this.stripContainerFields(data),
       }),
       fail: (err) => {
         console.error('事件发送失败', err)
@@ -308,7 +318,7 @@ Page({
         msgId: msgId,
         deviceId: this.data.deviceId,
         timestamp: Date.now(),
-        result: result,
+        result: this.stripContainerFields(result),
       }),
       fail: (err) => {
         console.error('响应发送失败', err)
