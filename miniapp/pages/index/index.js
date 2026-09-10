@@ -382,6 +382,11 @@ Page({
     my.showToast({ content: '接入代码已复制', duration: 1500 })
   },
 
+  // 跳转蓝牙测试台（真机蓝牙调试 + Task 0 spike）
+  goBluetoothTest() {
+    my.navigateTo({ url: '/pages/bluetooth-test/index' })
+  },
+
   scanQRCode() {
     my.scan({
       type: 'qr',

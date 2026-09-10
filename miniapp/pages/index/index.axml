@@ -55,5 +55,6 @@
 
   <view class="footer">
     <text class="hint-text">上方初始化代码已自动填入当前服务器地址与设备ID，点击复制后粘贴到模拟器项目的 app.js 中即可</text>
+    <button class="btn-secondary ble-test-entry" onTap="goBluetoothTest">蓝牙测试台</button>
   </view>
 </view>

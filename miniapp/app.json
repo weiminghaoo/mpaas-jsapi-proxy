@@ -1,7 +1,8 @@
 {
   "subPackageBuildType": "shared",
   "pages": [
-    "pages/index/index"
+    "pages/index/index",
+    "pages/bluetooth-test/index"
   ],
   "window": {
     "defaultTitle": "JSAPI代理"
