@@ -16,9 +16,18 @@ Page({
   onLoad() {
     const deviceId = Storage.getDeviceId()
     const cachedServerUrl = Storage.getServerUrl()
+    const appQuery = getApp().globalData.query || {}
+    let appQueryUrl
+    
+    //ws:// wss://开头
+    if (appQuery.url && (appQuery.url.startsWith('ws://') || appQuery.url.startsWith('wss://'))) {
+      console.log('从全局数据中获取的服务器地址:', appQuery.url)
+      appQueryUrl = appQuery.url
+    }
+
     this.setData({
       deviceId,
-      serverUrl: cachedServerUrl || this.data.serverUrl,
+      serverUrl: appQueryUrl || cachedServerUrl || this.data.serverUrl,
     })
     this.heartbeatTimer = null
     this._isConnecting = false

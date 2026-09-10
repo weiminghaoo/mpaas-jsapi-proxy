@@ -4,6 +4,7 @@ import { DeviceManager } from './device-manager';
 import { MessageRouter } from './message-router';
 import { Utils } from './utils';
 import type { IncomingMessage } from 'http';
+import config from './config';
 
 interface ServerConfig {
   port: number;
@@ -101,7 +102,7 @@ export class ProxyServer {
 
     // 生成二维码
     console.log('');
-    const qrData = `url=${encodeURIComponent(serverUrl)}`;
+    const qrData = `xlmpaas://${config.appId}?url=${encodeURIComponent(serverUrl)}`;
 
     QRCode.generate(qrData, { small: true });
   }

@@ -1,6 +1,3 @@
-
-
-
 // import MyCallProxy from './proxy_client/my-call-proxy.js';
 
 // ⚠️ 重要：使用从真机小程序复制的设备ID
@@ -17,15 +14,29 @@ setTimeout(() => {
   })
 }, 2000)
 App({
+  globalData: {
+    isLoad: false,
+    // 全局数据
+    query: {},
+  },
   onLaunch(options) {
     // 第一次打开
     // options.query == {number:1}
-    console.info('App onLaunch');
-
-  
+    console.info('App onLaunch')
+    this._parseQuery(options)
+    this.globalData.isLoad = true
   },
   onShow(options) {
     // 从后台被 scheme 重新打开
     // options.query == {number:1}
+    if (this.globalData.isLoad) {
+      this._parseQuery(options)
+    }
   },
-});
+  _parseQuery(options) {
+    const query = options.query || {}
+    const referrerInfo = options.referrerInfo || {}
+    const extraData = referrerInfo.extraData || {}
+    this.globalData.query = Object.assign({}, query, extraData)
+  },
+})
