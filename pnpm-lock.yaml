@@ -18,6 +18,9 @@ importers:
         specifier: ^8.14.0
         version: 8.21.0
     devDependencies:
+      '@mini-types/alipay':
+        specifier: ^3.0.14
+        version: 3.0.14
       '@types/minimist':
         specifier: ^1.2.5
         version: 1.2.5
@@ -212,6 +215,15 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@mini-types/alipay@3.0.14':
+    resolution: {integrity: sha512-FakzSsKvybtWlEIVTIRlr89kuQFn+XY86Ho9VUFFaKLplhW6Wx8FUxTDE7IzV7B9rT8DP/Icy637vUHlXPsw1g==}
+
+  '@mini-types/global@3.0.14':
+    resolution: {integrity: sha512-St2ucFRfKRskposOqV/9iNJTKn1MbyqDypQiy/0DaVJjEm2MFi82RJjX9sBz1uWhQIqzu741PgTjGSy7L/Qj9g==}
+
+  '@mini-types/my@3.0.14':
+    resolution: {integrity: sha512-aEgmM+rbEvEzTvqltCFRAg/h6KKs14M1y+FrOkz+hn2EyNpOVPesUzTjbRhSiFFsE3WdfBh54lHNYBahAmHq7w==}
 
   '@napi-rs/wasm-runtime@1.1.4':
     resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
@@ -739,6 +751,15 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.0':
     optional: true
+
+  '@mini-types/alipay@3.0.14':
+    dependencies:
+      '@mini-types/global': 3.0.14
+      '@mini-types/my': 3.0.14
+
+  '@mini-types/global@3.0.14': {}
+
+  '@mini-types/my@3.0.14': {}
 
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
