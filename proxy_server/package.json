@@ -1,6 +1,6 @@
 {
   "name": "mpaas-jsapi-proxy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "mPaaS JSAPI 代理服务器",
   "main": "dist/index.js",
   "bin": {
@@ -14,7 +14,6 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "vite build",
-    "prepublishOnly": "npm run build",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
