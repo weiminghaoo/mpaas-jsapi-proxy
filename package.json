@@ -1,6 +1,6 @@
 {
   "name": "mpaas-jsapi-proxy",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "mPaaS JSAPI 代理服务器与模拟器客户端代理",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

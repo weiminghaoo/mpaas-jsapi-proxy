@@ -69,6 +69,22 @@ my.call('xlGetAppInfo', {}, (result) => {
 });
 ```
 
+### 5. 蓝牙代理模式
+
+模拟器端初始化时传入 `{ bluetooth: true }`，即可把蓝牙相关 API 转发到真机执行（监听类 API 由真机触发、多播回模拟器）：
+
+```javascript
+const proxy = new MyCallProxy('ws://192.168.0.12:3000?deviceId=device_xxx', { bluetooth: true });
+proxy.init();
+
+my.openBluetoothAdapter({
+  success: (res) => console.log(res),
+  fail: (err) => console.error(err),
+});
+```
+
+真机小程序无需额外配置，自动支持事件订阅（`onBluetoothDeviceFound` 等）、解绑（`offXxx`）与订阅错误回报的转发。
+
 ## 常见问题
 
 ### Q: WebSocket 连接失败？
