@@ -1,6 +1,6 @@
 {
   "name": "mpaas-jsapi-proxy",
-  "version": "1.2.0",
+  "version": "1.1.0",
   "description": "mPaaS JSAPI 代理服务器与模拟器客户端代理",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,9 +19,9 @@
     "dist"
   ],
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "tsx src/server/index.ts",
     "dev": "tsx watch src/index.ts",
-    "build": "vite build && node scripts/build-server.mjs && node scripts/build-es5.mjs && tsc -p tsconfig.build.json",
+    "build": "rollup -c && tsc -p tsconfig.build.json",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
@@ -44,17 +44,19 @@
     "@babel/core": "^8.0.1",
     "@babel/preset-env": "^8.0.2",
     "@mini-types/alipay": "^3.0.14",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/minimist": "^1.2.5",
     "@types/node": "^25.9.1",
     "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.0",
     "minimist": "^1.2.8",
-    "nodemon": "^3.0.0",
     "qrcode-terminal": "^0.12.0",
+    "rollup": "^4.63.1",
+    "rollup-plugin-esbuild": "^6.2.1",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vite": "^8.0.14",
     "ws": "^8.14.0"
   },
   "volta": {

@@ -150,7 +150,7 @@ npm publish
 ## 技术栈
 
 - **TypeScript** - 类型安全的开发体验
-- **Vite** - 快速的构建工具
+- **esbuild** - 客户端与服务端产物打包
 - **WebSocket** - 实时双向通信
 - **qrcode-terminal** - 终端二维码显示
 
