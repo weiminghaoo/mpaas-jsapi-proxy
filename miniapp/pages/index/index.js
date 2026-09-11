@@ -475,8 +475,12 @@ Page({
     my.showToast({ content: '蓝牙模式接入代码已复制', duration: 1500 })
   },
 
-  goBluetoothTest() {
-    my.navigateTo({ url: '/pages/bluetooth-test/index' })
+  copyLog(e) {
+    const log = e.currentTarget.dataset.log
+    my.setClipboard({
+      text: log.text,
+    })
+    my.showToast({ content: '日志已复制', duration: 1500 })
   },
 
   scanQRCode() {
