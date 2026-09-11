@@ -33,10 +33,18 @@ mpaas-jsapi-proxy
 ### 2. 真机小程序连接
 
 1. **在真机上打开**代理小程序（pages/index/index）
-2. 输入服务器地址：`ws://192.168.0.12:3000/ws`
+2. 输入服务器地址，或点击输入框右侧的扫码图标，扫描服务器终端二维码自动填入
 3. 点击"连接"
 4. 等待注册成功提示
 5. **点击"复制连接参数"按钮**（会复制：`ws://192.168.0.12:3000?deviceId=device_1716732000000_abc123def`）
+
+扫码支持以下三种二维码内容（解析出 `ws://` / `wss://` 地址即自动填入）：
+
+| 格式 | 示例 |
+|------|------|
+| 服务端终端二维码 | `xlmpaas://2026052614145188?url=ws%3A%2F%2F192.168.0.12%3A3000` |
+| 裸参数串 | `url=ws%3A%2F%2F192.168.0.12%3A3000&deviceId=device_xxx` |
+| 地址本身 | `ws://192.168.0.12:3000` |
 
 ### 3. 配置模拟器客户端
 
@@ -68,6 +76,22 @@ my.call('xlGetAppInfo', {}, (result) => {
   console.log(result);  // 将在真机上执行
 });
 ```
+
+### 5. 蓝牙代理模式
+
+模拟器端初始化时传入 `{ bluetooth: true }`，即可把蓝牙相关 API 转发到真机执行（监听类 API 由真机触发、多播回模拟器）：
+
+```javascript
+const proxy = new MyCallProxy('ws://192.168.0.12:3000?deviceId=device_xxx', { bluetooth: true });
+proxy.init();
+
+my.openBluetoothAdapter({
+  success: (res) => console.log(res),
+  fail: (err) => console.error(err),
+});
+```
+
+真机小程序无需额外配置，自动支持事件订阅（`onBluetoothDeviceFound` 等）、解绑（`offXxx`）与订阅错误回报的转发。
 
 ## 常见问题
 

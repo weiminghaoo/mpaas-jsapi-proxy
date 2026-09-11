@@ -19,8 +19,9 @@ mPaaS 小程序 JSAPI 代理：将模拟器中的 `my.call` 调用通过 WebSock
 
 - WebSocket 代理服务器，支持 JSAPI 消息转发
 - 设备连接管理、消息路由和分发、心跳检测
-- 终端二维码显示服务器地址
+- 终端二维码显示服务器地址，真机小程序扫码即自动填入
 - 模拟器客户端 `MyCallProxy`：透明劫持 `my.call`，npm 包直接引用，无需复制代码
+- 蓝牙代理开关：`{ bluetooth: true }` 仅代理蓝牙 API（含事件多播）到真机，其余保持模拟器本地执行
 
 ## 快速开始
 
@@ -36,7 +37,7 @@ mpaas-jsapi-proxy
 
 ### 2. 真机小程序连接
 
-在真机上运行 `miniapp/` 小程序，输入服务器地址并连接，复制连接参数（含设备ID）。
+在真机上运行 `miniapp/` 小程序，输入服务器地址并连接（点击输入框右侧扫码图标，扫描服务器终端二维码可自动填入），复制连接参数（含设备ID）。
 
 ### 3. 模拟器客户端接入
 
@@ -59,6 +60,35 @@ my.call('scan', { type: 'qr' }, (result) => {
   console.log(result);
 });
 ```
+
+### 蓝牙代理模式（可选）
+
+模拟器不支持蓝牙调试时，可开启蓝牙开关：只把蓝牙相关 API 转发到真机执行，其余 `my.*` 调用（含业务自定义 JSAPI）保持模拟器本地执行：
+
+```javascript
+import MyCallProxy from 'mpaas-jsapi-proxy';
+
+const proxy = new MyCallProxy('ws://192.168.0.12:3000?deviceId=device_xxx', { bluetooth: true });
+proxy.init();
+
+// 一次性 API 走真机，success/fail 按真机结果自动路由
+my.openBluetoothAdapter({
+  success: (res) => console.log('适配器已打开', res),
+  fail: (err) => console.error('打开失败', err),
+});
+
+// 监听类 API：真机触发，经服务器多播回模拟器
+my.onBluetoothDeviceFound((res) => {
+  console.log('发现设备', res.devices);
+});
+```
+
+开启后：
+
+- 一次性 API（`openBluetoothAdapter`、`writeBLECharacteristicValue`、`getBluetoothDevices` 等）原路返回
+- 监听类 API（`onBluetoothDeviceFound`、`onBLECharacteristicValueChange` 等）由真机触发多播，`offXxx` 全量解绑并同步真机
+- `my.call` 与其他 `my.*` API 完全不受影响；不传 `bluetooth` 时保持原有全量代理行为
+- 注意：蓝牙模式下若通过 `my.call('openBluetoothAdapter', ...)` 泛化方式调用蓝牙 API，**不会**被代理（该模式不劫持 `my.call`），请使用具名 API 写法
 
 ## 开发
 
@@ -120,7 +150,7 @@ npm publish
 ## 技术栈
 
 - **TypeScript** - 类型安全的开发体验
-- **Vite** - 快速的构建工具
+- **esbuild** - 客户端与服务端产物打包
 - **WebSocket** - 实时双向通信
 - **qrcode-terminal** - 终端二维码显示
 

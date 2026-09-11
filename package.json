@@ -19,9 +19,9 @@
     "dist"
   ],
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "tsx src/server/index.ts",
     "dev": "tsx watch src/index.ts",
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "rollup -c && tsc -p tsconfig.build.json",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
@@ -34,27 +34,30 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/mpaas-jsapi-proxy.git"
+    "url": "git+https://github.com/weiminghaoo/mpaas-jsapi-proxy.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mpaas-jsapi-proxy/issues"
+    "url": "https://github.com/weiminghaoo/mpaas-jsapi-proxy/issues"
   },
-  "homepage": "https://github.com/your-username/mpaas-jsapi-proxy#readme",
-  "dependencies": {
-    "minimist": "^1.2.8",
-    "qrcode-terminal": "^0.12.0",
-    "ws": "^8.14.0"
-  },
+  "homepage": "https://github.com/weiminghaoo/mpaas-jsapi-proxy#readme",
   "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@mini-types/alipay": "^3.0.14",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/minimist": "^1.2.5",
     "@types/node": "^25.9.1",
     "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.0",
-    "nodemon": "^3.0.0",
+    "minimist": "^1.2.8",
+    "qrcode-terminal": "^0.12.0",
+    "rollup": "^4.63.1",
+    "rollup-plugin-esbuild": "^6.2.1",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vite": "^8.0.14"
+    "ws": "^8.14.0"
   },
   "volta": {
     "node": "18.20.8"

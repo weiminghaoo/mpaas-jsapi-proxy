@@ -1,0 +1,69 @@
+<view class="container">
+  <view class="header">
+    <text class="title">蓝牙测试台</text>
+  </view>
+
+  <view class="card">
+    <view class="card-title">Spike 对比：泛化 my.call vs 具名 API</view>
+    <view class="hint-text">同一 API 两种调用方式各执行一次，对比真实返回结构（error/errorCode 类型与取值）</view>
+    <view class="button-row">
+      <button class="btn" onTap="spikeOpenAdapter">openBluetoothAdapter</button>
+      <button class="btn" onTap="spikeAdapterState">getAdapterState</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">流程测试</view>
+    <input class="ipt" placeholder="设备ID deviceId" value="{{deviceId}}" onInput="onDeviceIdInput" />
+    <view class="button-row">
+      <button class="btn" onTap="startDiscovery">开始搜索</button>
+      <button class="btn" onTap="stopDiscovery">停止搜索</button>
+      <button class="btn" onTap="getBluetoothDevices">已发现设备</button>
+    </view>
+    <view class="button-row">
+      <button class="btn" onTap="connectDevice">连接BLE</button>
+      <button class="btn" onTap="disconnectDevice">断开BLE</button>
+    </view>
+    <input class="ipt" placeholder="serviceId" value="{{serviceId}}" onInput="onServiceIdInput" />
+    <view class="button-row">
+      <button class="btn" onTap="getServices">取服务</button>
+      <button class="btn" onTap="getCharacteristics">取特征值</button>
+    </view>
+    <input class="ipt" placeholder="characteristicId" value="{{characteristicId}}" onInput="onCharacteristicIdInput" />
+    <input class="ipt" placeholder="写入值（16进制字符串，如 00FF）" value="{{writeValue}}" onInput="onWriteValueInput" />
+    <view class="button-row">
+      <button class="btn" onTap="readValue">读取</button>
+      <button class="btn" onTap="writeValue">写入</button>
+      <button class="btn" onTap="notifyOn">订阅Notify</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">监听（具名 + 泛化双注册对比）</view>
+    <view class="button-row">
+      <button class="btn" onTap="listenDeviceFound">监听设备发现({{foundCount}})</button>
+      <button class="btn" onTap="listenCharacteristic">监听特征值({{notifyCount}})</button>
+    </view>
+    <view class="button-row">
+      <button class="btn" onTap="offAll">全部解绑</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">日志</view>
+    <view class="button-row">
+      <button class="btn small" onTap="copyLogs">复制日志</button>
+      <button class="btn small" onTap="clearLogs">清空</button>
+    </view>
+    <view class="log-list">
+      <view class="log-item" a:for="{{logs}}" a:key="id">
+        <text class="log-time">{{item.time}}</text>
+        <text class="log-tag">{{item.tag}}</text>
+        <text class="log-text">{{item.text}}</text>
+      </view>
+      <view a:if="{{!logs.length}}" class="log-empty">
+        <text class="hint-text">暂无日志</text>
+      </view>
+    </view>
+  </view>
+</view>

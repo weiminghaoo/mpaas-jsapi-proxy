@@ -1,16 +1,77 @@
 import { Storage } from '../../utils/storage'
-import { parseUrlString } from '../../utils/urlParser'
+import { parseServerUrl } from '../../utils/urlParser'
+
+// 蓝牙解绑类 API 白名单（与 src/bluetooth-apis.ts 的 BLUETOOTH_EVENT_APIS 前缀替换结果保持一致）
+// 显式列举而非按 /^off/ 前缀拦截，避免误伤名字以 off 开头的业务自定义 API
+const BLUETOOTH_OFF_APIS = [
+  'offBluetoothAdapterStateChange',
+  'offBluetoothDeviceFound',
+  'offBLEConnectionStateChanged',
+  'offBLECharacteristicValueChange',
+  'offBeaconUpdate',
+  'offBeaconServiceChange',
+]
 
 Page({
   data: {
     deviceId: '',
     serverUrl: 'ws://192.168.1.100:3000',
     clientUsageSnippet: '',
+    bluetoothSnippet: '',
     connectionStatus: '未连接',
     statusClass: 'disconnected',
     isConnected: false,
     scanIcon: '/assets/scan.svg',
+    showUsage: false,
+    logs: [],
   },
+
+  // ===== 运行日志（最新在前，限量防卡顿） =====
+  log(tag, payload) {
+    if (!this._logId) {
+      this._logId = 0
+    }
+    this._logId++
+    let text = typeof payload === 'string' ? payload : JSON.stringify(payload)
+    if (text && text.length > 400) {
+      text = text.slice(0, 400) + '…'
+    }
+    const entry = {
+      id: this._logId,
+      time: new Date().toTimeString().slice(0, 8),
+      tag: tag,
+      text: text,
+    }
+    this.setData({ logs: [entry].concat(this.data.logs).slice(0, 100) })
+  },
+
+  clearLogs() {
+    this._logId = 0
+    this.setData({ logs: [] })
+  },
+
+  copyLogs() {
+    const lines = this.data.logs
+      .slice()
+      .reverse()
+      .map((item) => item.time + ' [' + item.tag + '] ' + item.text)
+      .join('\n')
+    my.setClipboard({
+      text: lines,
+      success: () => my.showToast({ content: '日志已复制', duration: 1500 }),
+    })
+  },
+
+  // ===== 使用说明 popup =====
+  showUsage() {
+    this.setData({ showUsage: true })
+  },
+
+  hideUsage() {
+    this.setData({ showUsage: false })
+  },
+
+  stopBubble() {},
 
   // 模拟器客户端接入代码（自动填入当前服务器地址与设备ID）
   buildClientUsageSnippet(serverUrl, deviceId) {
@@ -22,11 +83,22 @@ Page({
     ].join('\n')
   },
 
+  // 蓝牙代理模式接入代码
+  buildBluetoothSnippet(serverUrl, deviceId) {
+    return [
+      "import MyCallProxy from 'mpaas-jsapi-proxy'",
+      '',
+      `const proxy = new MyCallProxy('${serverUrl}?deviceId=${deviceId}', { bluetooth: true });`,
+      'proxy.init();',
+    ].join('\n')
+  },
+
   // 更新服务器地址并同步刷新接入代码
   applyServerUrl(serverUrl) {
     this.setData({
       serverUrl,
       clientUsageSnippet: this.buildClientUsageSnippet(serverUrl, this.data.deviceId),
+      bluetoothSnippet: this.buildBluetoothSnippet(serverUrl, this.data.deviceId),
     })
   },
 
@@ -47,10 +119,12 @@ Page({
       deviceId,
       serverUrl,
       clientUsageSnippet: this.buildClientUsageSnippet(serverUrl, deviceId),
+      bluetoothSnippet: this.buildBluetoothSnippet(serverUrl, deviceId),
     })
     this.heartbeatTimer = null
     this._isConnecting = false
     this._hasSetupListeners = false
+    this.log('初始化', '设备ID: ' + deviceId)
 
     my.setKeepScreenOn({
       keepScreenOn: true,
@@ -68,6 +142,7 @@ Page({
 
     my.onSocketOpen(() => {
       console.log('WebSocket 连接已打开')
+      this.log('连接', 'WebSocket 已连接')
       this._isConnecting = false
       this.register()
     })
@@ -83,6 +158,7 @@ Page({
 
     my.onSocketError((err) => {
       console.error('WebSocket 错误', err)
+      this.log('连接', '连接错误')
       this.setData({
         connectionStatus: '连接错误',
         statusClass: 'error',
@@ -94,6 +170,7 @@ Page({
 
     my.onSocketClose(() => {
       console.log('WebSocket 连接已关闭')
+      this.log('连接', '已断开')
       this.setData({
         connectionStatus: '已断开',
         statusClass: 'disconnected',
@@ -142,6 +219,7 @@ Page({
       },
       fail: (err) => {
         console.error('WebSocket 连接失败', err)
+        this.log('连接', '连接失败: ' + JSON.stringify(err))
         this.setData({
           connectionStatus: '连接失败',
           statusClass: 'error',
@@ -186,6 +264,7 @@ Page({
             statusClass: 'connected',
             isConnected: true,
           })
+          this.log('注册', '注册成功')
           my.showToast({ content: '注册成功！', duration: 2000 })
           this.startHeartbeat()
         }
@@ -197,6 +276,7 @@ Page({
 
       case 'error':
         console.error('收到错误消息', message)
+        this.log('错误', (message.error && message.error.message) || '发生错误')
         my.showToast({ content: message.error.message || '发生错误', duration: 2000 })
         break
 
@@ -206,27 +286,118 @@ Page({
   },
 
   handleApiCall(message) {
-    const { msgId, api, params } = message
+    const { msgId, api, params, proxyMode } = message
 
     console.log('执行 API 调用:', api, params)
+    this.log('调用:' + api, params)
+
+    // 事件订阅类：注册真机监听，多次回发 event
+    if (proxyMode === 'event') {
+      this.handleEventSubscribe(message)
+      return
+    }
+
+    // 蓝牙解绑类：泛化 my.call 对监听解绑不生效，必须用具名 API
+    if (BLUETOOTH_OFF_APIS.indexOf(api) !== -1 && typeof my[api] === 'function') {
+      try {
+        my[api]()
+      } catch (e) {
+        console.error('解绑失败', e)
+      }
+      this.log('解绑:' + api, '已解绑并回响应')
+      this.sendResponse(msgId, { success: true })
+      return
+    }
 
     my.call(api, params || {}, (result) => {
       console.log('API 返回结果:', result)
+      this.log('响应:' + api, this.stripContainerFields(result))
+      this.sendResponse(msgId, result)
+    })
+  },
 
-      const response = {
+  // 订阅事件：先解绑旧监听（幂等，防重连后重复事件），再注册转发
+  handleEventSubscribe(message) {
+    const { msgId, api } = message
+    const offApi = api.replace(/^on/, 'off')
+    if (typeof my[offApi] === 'function') {
+      try {
+        my[offApi]()
+      } catch (e) {
+        console.error('清理旧监听失败', e)
+      }
+    }
+    const native = my[api]
+    if (typeof native !== 'function') {
+      console.error('真机不支持事件 API:', api)
+      this.log('订阅被拒:' + api, '真机不支持，回报错误')
+      // 用 type:'error' 回报（携带 api），不伪装成事件污染业务回调
+      this.sendSubscriptionError(msgId, api, 'unsupported api: ' + api)
+      return
+    }
+    native((data) => {
+      console.log('事件触发:', api, data)
+      this.sendEvent(msgId, api, data)
+    })
+    this.log('订阅:' + api, '已注册真机监听')
+  },
+
+  // 剔除真机容器注入的 NBPageUrl（JSAPI 回调自带，对模拟器端是噪音且泄漏内部 URL）
+  stripContainerFields(value) {
+    if (value && typeof value === 'object' && 'NBPageUrl' in value) {
+      const copy = Object.assign({}, value)
+      delete copy.NBPageUrl
+      return copy
+    }
+    return value
+  },
+
+  sendEvent(msgId, api, data) {
+    const clean = this.stripContainerFields(data)
+    this.log('事件:' + api, clean)
+    my.sendSocketMessage({
+      data: JSON.stringify({
+        type: 'event',
+        msgId: msgId,
+        api: api,
+        deviceId: this.data.deviceId,
+        timestamp: Date.now(),
+        data: clean,
+      }),
+      fail: (err) => {
+        console.error('事件发送失败', err)
+      },
+    })
+  },
+
+  sendSubscriptionError(msgId, api, message) {
+    my.sendSocketMessage({
+      data: JSON.stringify({
+        type: 'error',
+        msgId: msgId,
+        api: api,
+        deviceId: this.data.deviceId,
+        timestamp: Date.now(),
+        error: { code: 'API_NOT_FOUND', message: message },
+      }),
+      fail: (err) => {
+        console.error('订阅错误上报失败', err)
+      },
+    })
+  },
+
+  sendResponse(msgId, result) {
+    my.sendSocketMessage({
+      data: JSON.stringify({
         type: 'response',
         msgId: msgId,
         deviceId: this.data.deviceId,
         timestamp: Date.now(),
-        result: result,
-      }
-
-      my.sendSocketMessage({
-        data: JSON.stringify(response),
-        fail: (err) => {
-          console.error('响应发送失败', err)
-        },
-      })
+        result: this.stripContainerFields(result),
+      }),
+      fail: (err) => {
+        console.error('响应发送失败', err)
+      },
     })
   },
 
@@ -296,24 +467,39 @@ Page({
     my.showToast({ content: '接入代码已复制', duration: 1500 })
   },
 
+  // 跳转蓝牙测试台（真机蓝牙调试 + Task 0 spike）
+  copyBluetoothSnippet() {
+    my.setClipboard({
+      text: this.data.bluetoothSnippet,
+    })
+    my.showToast({ content: '蓝牙模式接入代码已复制', duration: 1500 })
+  },
+
+  copyLog(e) {
+    const log = e.currentTarget.dataset.log
+    my.setClipboard({
+      text: log.text,
+    })
+    my.showToast({ content: '日志已复制', duration: 1500 })
+  },
+
   scanQRCode() {
     my.scan({
       type: 'qr',
       success: (res) => {
         const code = res.code
         console.log('扫码结果:', code)
-        const urlParams = parseUrlString(code)
 
-        // 解析 URL 中的参数 url=ws://192.168.0.12:3000
-        if (urlParams.url) {
-          const decodedUrl = urlParams.url
-          console.log('解析后的 URL:', decodedUrl)
-          if (decodedUrl.startsWith('ws://') || decodedUrl.startsWith('wss://')) {
-            this.applyServerUrl(decodedUrl)
-            my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
-            return
-          }
+        // 兼容 xlmpaas://<appId>?url=... 与 url=... 裸参数串
+        const serverUrl = parseServerUrl(code)
+        if (serverUrl) {
+          console.log('解析后的服务器地址:', serverUrl)
+          this.applyServerUrl(serverUrl)
+          this.log('扫码', serverUrl)
+          my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
+          return
         }
+        this.log('扫码', '无效二维码格式: ' + code)
         my.showToast({ content: '无效的二维码格式', duration: 2000 })
       },
       fail: () => {

@@ -1,10 +1,13 @@
 <view class="container">
-  <view class="header">
-    <text class="title">mPaaS JSAPI 代理</text>
-  </view>
+  <!--<view class="header"><text class="title">mPaaS JSAPI 代理</text></view> -->
 
   <view class="card">
-    <view class="card-title">设备与状态</view>
+    <view class="card-title flex-row justify-between">
+      <view>
+        设备与状态
+      </view>
+      <view class="card-title-desc" onTap="showUsage">使用说明</view>
+    </view>
     <view class="info-row">
       <text class="label">设备ID：</text>
       <text class="value">{{deviceId}}</text>
@@ -28,32 +31,79 @@
     </view>
     <view class="button-row">
       <button a:if="{{!isConnected}}" class="btn-primary" onTap="connect">连接</button>
-      <button a:if="{{isConnected}}" class="btn-secondary" onTap="disconnect">断开</button>
+      <button a:if="{{isConnected}}" class="btn-secondary" onTap="disconnect">
+        断开
+      </button>
       <button class="btn-secondary" onTap="copyConnectionParams">复制连接参数</button>
     </view>
+
   </view>
 
-  <view class="card">
-    <view class="card-title">使用说明</view>
-
-    <view class="section-label">服务器</view>
-    <view class="code-block" onTap="copyInstallCommand">
-      <text class="code-text">npm install -g mpaas-jsapi-proxy && mpaas-jsapi-proxy</text>
-      <image class="copy-icon" src="/assets/copy.svg" />
+  <view class="card flex-1 h-1">
+    <view class="card-title">运行日志</view>
+    <view class="button-row log-actions">
+      <button class="btn-mini" onTap="copyLogs">复制</button>
+      <button class="btn-mini" onTap="clearLogs">清空</button>
     </view>
-
-    <view class="section-label">模拟器客户端</view>
-    <view class="code-block" onTap="copyClientInstall">
-      <text class="code-text">npm install mpaas-jsapi-proxy --save</text>
-      <image class="copy-icon" src="/assets/copy.svg" />
-    </view>
-    <view class="code-block" onTap="copyClientUsage">
-      <text class="code-text">{{clientUsageSnippet}}</text>
-      <image class="copy-icon" src="/assets/copy.svg" />
+    <view class="log-list flex-1 h-1">
+      <view a:for="{{logs}}" class="log-item" a:key="id">
+        <view class="flex-row justify-between">
+          <view>
+            <text class="log-time">{{item.time}}</text>
+            <text class="log-tag">{{item.tag}}</text>
+          </view>
+          <view class="log-copy" onTap="copyLog" data-log="{{item}}">
+            复制
+          </view>
+        </view>
+        <view>
+          <text class="log-text">{{item.text}}</text>
+        </view>
+      </view>
+      <view a:if="{{!logs.length}}" class="log-empty">
+        <text class="hint-text">暂无日志</text>
+      </view>
     </view>
   </view>
 
-  <view class="footer">
-    <text class="hint-text">上方初始化代码已自动填入当前服务器地址与设备ID，点击复制后粘贴到模拟器项目的 app.js 中即可</text>
+  <view a:if="{{showUsage}}" class="popup-mask" onTap="hideUsage">
+    <view class="popup" catchTap="stopBubble">
+      <view class="popup-header">
+        <text class="popup-title">使用说明</text>
+        <text class="popup-close" onTap="hideUsage">×</text>
+      </view>
+      <view class="popup-body">
+        <view class="section-label">1. 启动代理服务器（电脑）</view>
+        <view class="code-block" onTap="copyInstallCommand">
+          <text class="code-text">
+            npm install -g mpaas-jsapi-proxy && mpaas-jsapi-proxy
+          </text>
+          <image class="copy-icon" src="/assets/copy.svg" />
+        </view>
+
+        <view class="section-label">2. 模拟器项目安装（电脑）</view>
+        <view class="code-block" onTap="copyClientInstall">
+          <text class="code-text">npm install mpaas-jsapi-proxy --save</text>
+          <image class="copy-icon" src="/assets/copy.svg" />
+        </view>
+
+        <view class="section-label">3. 模拟器 app.js 接入（点击复制，已填入本页参数）</view>
+        <view class="code-block" onTap="copyClientUsage">
+          <text class="code-text">{{clientUsageSnippet}}</text>
+          <image class="copy-icon" src="/assets/copy.svg" />
+        </view>
+
+        <view class="section-label">蓝牙代理模式（只把蓝牙 API 转发到真机）</view>
+        <view class="code-block" onTap="copyBluetoothSnippet">
+          <text class="code-text">{{bluetoothSnippet}}</text>
+          <image class="copy-icon" src="/assets/copy.svg" />
+        </view>
+
+        <view class="section-label">说明</view>
+        <text class="hint-text">
+          默认模式：连接后所有 my.call 走真机；bluetooth 模式：仅蓝牙 API 走真机（含事件多播），其余保持模拟器本地执行。本页设备ID需与模拟器接入参数一致。
+        </text>
+      </view>
+    </view>
   </view>
 </view>

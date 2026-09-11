@@ -1,7 +1,10 @@
 .container {
   padding: 20rpx;
   background-color: #f5f5f5;
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .header {
@@ -15,11 +18,30 @@
   color: #333;
 }
 
+.h-1 {
+  height: 1px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
 .card {
   background-color: white;
   border-radius: 16rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-title {
@@ -27,6 +49,11 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 16rpx;
+}
+
+.card-title-desc {
+  font-size: 24rpx;
+  color: #999;
 }
 
 .info-row {
@@ -71,7 +98,8 @@
   color: #999;
 }
 
-.status.connecting, .status.error {
+.status.connecting,
+.status.error {
   color: #faad14;
 }
 
@@ -92,7 +120,8 @@
   gap: 20rpx;
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary,
+.btn-secondary {
   flex: 1;
 }
 
@@ -142,7 +171,7 @@
   margin: 20rpx 0 8rpx;
 }
 
-.card-title + .section-label {
+.card-title+.section-label {
   margin-top: 0;
 }
 
@@ -158,7 +187,7 @@
   margin-top: 8rpx;
 }
 
-.code-block + .code-block {
+.code-block+.code-block {
   margin-top: 12rpx;
 }
 
@@ -193,4 +222,108 @@
   font-size: 24rpx;
   color: #999;
   font-style: italic;
+}
+
+/* 运行日志 */
+.log-actions {
+  margin-bottom: 12rpx;
+}
+
+.btn-mini {
+  font-size: 22rpx;
+  padding: 0 20rpx;
+  height: 48rpx;
+  margin: 0;
+  background-color: #f5f5f5;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.log-list {
+  overflow-y: scroll;
+}
+
+.log-item {
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.log-time {
+  font-size: 20rpx;
+  color: #bbb;
+  margin-right: 10rpx;
+}
+
+.log-tag {
+  font-size: 22rpx;
+  color: #1890ff;
+  margin-right: 10rpx;
+}
+
+.log-copy {
+  font-size: 22rpx;
+  color: #1890ff;
+}
+
+.log-text {
+  font-size: 22rpx;
+  color: #666;
+  word-break: break-all;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+/* 使用说明 popup */
+.popup-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup {
+  width: 86%;
+  max-height: 80vh;
+  background-color: white;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-sizing: border-box;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.popup-close {
+  font-size: 44rpx;
+  color: #999;
+  padding: 0 12rpx;
+  line-height: 1;
+}
+
+.popup-body {
+  max-height: 64vh;
+  overflow-y: scroll;
 }
