@@ -21,7 +21,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "tsx watch src/index.ts",
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && node scripts/build-server.mjs && node scripts/build-es5.mjs && tsc -p tsconfig.build.json",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
@@ -40,22 +40,22 @@
     "url": "https://github.com/your-username/mpaas-jsapi-proxy/issues"
   },
   "homepage": "https://github.com/your-username/mpaas-jsapi-proxy#readme",
-  "dependencies": {
-    "minimist": "^1.2.8",
-    "qrcode-terminal": "^0.12.0",
-    "ws": "^8.14.0"
-  },
   "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
     "@mini-types/alipay": "^3.0.14",
     "@types/minimist": "^1.2.5",
     "@types/node": "^25.9.1",
     "@types/qrcode-terminal": "^0.12.2",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.0",
+    "minimist": "^1.2.8",
     "nodemon": "^3.0.0",
+    "qrcode-terminal": "^0.12.0",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "ws": "^8.14.0"
   },
   "volta": {
     "node": "18.20.8"
