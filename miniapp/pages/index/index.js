@@ -1,5 +1,5 @@
 import { Storage } from '../../utils/storage'
-import { parseUrlString } from '../../utils/urlParser'
+import { parseServerUrl } from '../../utils/urlParser'
 
 // 蓝牙解绑类 API 白名单（与 src/bluetooth-apis.ts 的 BLUETOOTH_EVENT_APIS 前缀替换结果保持一致）
 // 显式列举而非按 /^off/ 前缀拦截，避免误伤名字以 off 开头的业务自定义 API
@@ -489,18 +489,17 @@ Page({
       success: (res) => {
         const code = res.code
         console.log('扫码结果:', code)
-        const urlParams = parseUrlString(code)
 
-        // 解析 URL 中的参数 url=ws://192.168.0.12:3000
-        if (urlParams.url) {
-          const decodedUrl = urlParams.url
-          console.log('解析后的 URL:', decodedUrl)
-          if (decodedUrl.startsWith('ws://') || decodedUrl.startsWith('wss://')) {
-            this.applyServerUrl(decodedUrl)
-            my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
-            return
-          }
+        // 兼容 xlmpaas://<appId>?url=... 与 url=... 裸参数串
+        const serverUrl = parseServerUrl(code)
+        if (serverUrl) {
+          console.log('解析后的服务器地址:', serverUrl)
+          this.applyServerUrl(serverUrl)
+          this.log('扫码', serverUrl)
+          my.showToast({ content: '已自动填入服务器地址', duration: 1500 })
+          return
         }
+        this.log('扫码', '无效二维码格式: ' + code)
         my.showToast({ content: '无效的二维码格式', duration: 2000 })
       },
       fail: () => {
