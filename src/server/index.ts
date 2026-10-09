@@ -50,8 +50,10 @@ process.on('exit', () => tui?.stop());
 process.on('uncaughtException', (error) => {
   // 先恢复终端，崩溃信息才会落在主屏、而不是随备用屏一起消失
   tui?.stop();
-  // 崩溃诊断必须走 sink：裸 console.error 会绕过 sink，开了 --log-file 时崩溃原因永远进不了文件
-  Utils.log(`未捕获异常: ${error instanceof Error ? error.message : String(error)}`, 'error');
+  // 崩溃诊断必须走 sink：裸 console.error 会绕过 sink，开了 --log-file 时崩溃原因永远进不了文件。
+  // 带上完整 stack（error.stack 首行已含 "Error: <message>"，故不再单独拼 message 以免重复前缀）
+  const detail = error instanceof Error ? error.stack ?? error.message : String(error);
+  Utils.log(`未捕获异常: ${detail}`, 'error');
   // 复用 shutdown 的「等日志流 close 后退出」流程刷完缓冲，退出码仍为 1，1s 兜底防挂死
   shutdown(1);
 });
