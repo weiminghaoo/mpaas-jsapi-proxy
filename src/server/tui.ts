@@ -224,7 +224,10 @@ export class Tui {
 
   // q 切换与 resize 共用的重绘路径：整屏重画后回填最近日志
   private redraw(): void {
-    process.stdout.write(CLEAR + HOME);
+    // 必须先复位滚动区再清屏。清屏受当前滚动区约束，而此处旧的（展开态）区域可能比
+    // 新头部高得多，带着它清屏会把「新头部之下、旧区域之上」那一段旧二维码留在屏上——
+    // 表现为按 q 收起后二维码没完全消失
+    process.stdout.write(SCROLL_RESET + CLEAR + HOME);
     this.drawHeader();
     // 没有合法滚动区时不回填：回填同样是写日志行，会把整屏滚动、头部顶走
     if (!this.applyScrollRegion()) return;
