@@ -60,6 +60,9 @@ function shutdown(code: number): void {
     clearInterval(statusTimer);
     statusTimer = null;
   }
+  // 关闭提示走 Utils.log 而非裸 console.log：TUI 模式下进滚动区、非 TUI 模式下照常上屏。
+  // 必须在 tui.stop() 之前写，否则会落到已恢复的主屏上、把备用屏的内容顺序打乱
+  Utils.log('正在关闭服务器...', 'info');
   // 先恢复终端再停服务器：「服务器已关闭」因此留在主屏的 scrollback 里，而不是随备用屏一起消失
   tui?.stop();
   proxyServer.stop();
