@@ -24,6 +24,21 @@ const noTui = args.tui === false;
 let tui: Tui | null = null;
 let statusTimer: NodeJS.Timeout | null = null;
 
+// 这四条必须注册在任何可能抛错的调用之前：tui.start() 会先进备用屏并开 raw mode，
+// proxyServer.start() 也可能同步抛出（如 --port abc → ERR_SOCKET_BAD_PORT）。
+// 注册晚了，抛错时没人恢复终端，用户就会被留在 alt screen + raw mode 里
+process.on('SIGINT', () => shutdown(0));
+process.on('SIGTERM', () => shutdown(0));
+
+// 退出路径的最后一道兜底；exit 事件里只能跑同步代码，tui.stop() 是同步写，可以
+process.on('exit', () => tui?.stop());
+
+process.on('uncaughtException', (error) => {
+  tui?.stop();
+  console.error('未捕获异常:', error);
+  process.exit(1);
+});
+
 // 终端不支持 TUI（stdout 非 TTY、尺寸未知）或显式 --no-tui 时，一律降级为纯文本头部
 if (Tui.isSupported() && !noTui) {
   const instance = new Tui({
@@ -33,18 +48,27 @@ if (Tui.isSupported() && !noTui) {
     // raw mode 下 Ctrl+C 不再产生 SIGINT，只能由 Tui 在按键层回调
     onQuit: () => shutdown(0),
   });
+  // tui 必须先于 start() 赋值：start() 写完备用屏序列后仍可能抛错（如 setRawMode 抛
+  // ERR_TTY_INIT_FAILED），此时只有 tui 非空，退出处理器才拿得到实例去恢复终端
+  tui = instance;
   // 顺序不可换：先进备用屏画好头部，再挂日志 sink；
   // 反过来的话启动日志会落在主屏、把头部顶走
   instance.start();
   Utils.setLogSink((line) => instance.appendLog(line));
   proxyServer.setTui(instance);
-  tui = instance;
 } else {
   Utils.setLogSink(null);
 }
 
-// 启动 WebSocket 服务器（TUI 模式下头部已画过，server 内部不会重复打印）
-proxyServer.start();
+// 启动 WebSocket 服务器（TUI 模式下头部已画过，server 内部不会重复打印）。
+// 参数非法时 ws 会在构造函数内同步抛出（如 --port abc / 70000 → ERR_SOCKET_BAD_PORT），
+// 而此时终端已进备用屏，必须先恢复再让异常继续上抛
+try {
+  proxyServer.start();
+} catch (error) {
+  tui?.stop();
+  throw error;
+}
 
 // 状态轮询：setStatus 内部已做变化比对，此处无需判重
 if (tui) {
@@ -68,15 +92,3 @@ function shutdown(code: number): void {
   proxyServer.stop();
   process.exit(code);
 }
-
-process.on('SIGINT', () => shutdown(0));
-process.on('SIGTERM', () => shutdown(0));
-
-// 退出路径的最后一道兜底；exit 事件里只能跑同步代码，tui.stop() 是同步写，可以
-process.on('exit', () => tui?.stop());
-
-process.on('uncaughtException', (error) => {
-  tui?.stop();
-  console.error('未捕获异常:', error);
-  process.exit(1);
-});
