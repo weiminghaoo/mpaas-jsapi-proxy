@@ -7,16 +7,13 @@
 // proxy.init();
 
 import { BLUETOOTH_ONE_SHOT_APIS, BLUETOOTH_EVENT_APIS } from './bluetooth-apis'
+const TAG = '[MyCallProxy]'
 
 /** my.call 回调 */
 type CallCallback = (result: any) => void
 
 /** 原始 my.call 函数签名 */
-type CallFunction = (
-  api: string,
-  params: Record<string, unknown>,
-  callback?: CallCallback
-) => void
+type CallFunction = (api: string, params: Record<string, unknown>, callback?: CallCallback) => void
 
 /** 代理服务器消息 */
 interface ProxyMessage {
@@ -42,20 +39,12 @@ interface PendingCall {
 /** mPaaS 小程序全局对象（仅声明本模块用到的 API） */
 declare const my: {
   call: CallFunction
-  connectSocket: (options: {
-    url: string
-    success?: () => void
-    fail?: (err: unknown) => void
-  }) => void
+  connectSocket: (options: { url: string; success?: () => void; fail?: (err: unknown) => void }) => void
   onSocketOpen: (callback: () => void) => void
   onSocketMessage: (callback: (res: { data: string }) => void) => void
   onSocketError: (callback: (err: unknown) => void) => void
   onSocketClose: (callback: () => void) => void
-  sendSocketMessage: (options: {
-    data: string
-    success?: () => void
-    fail?: (err: unknown) => void
-  }) => void
+  sendSocketMessage: (options: { data: string; success?: () => void; fail?: (err: unknown) => void }) => void
   closeSocket: (options?: Record<string, unknown>) => void
 }
 
@@ -139,9 +128,7 @@ class MyCallProxy {
     if (this.options.bluetooth) {
       // 蓝牙模式：重写 my 上的蓝牙具名 API，不劫持 my.call
       this.setupBluetoothProxy()
-      this.connect()
-      console.log('[MyCallProxy] ✅ 蓝牙 API 代理已初始化（仅代理蓝牙 API）')
-      return true
+      console.log(TAG, '✅ 蓝牙 API 代理已初始化')
     }
 
     const self = this
@@ -150,13 +137,13 @@ class MyCallProxy {
         self.proxyCall(api, params, callback)
       } else if (self.isConnecting) {
         // 连接中，等待连接完成
-        console.log(`[代理连接中] 等待连接: ${api}`)
+        console.log(`[MyCallProxy] [代理连接中] 等待连接: ${api}`)
         self.waitForConnection().then(() => {
-          console.log(`[代理连接中] 连接完成，发送: ${api}`)
+          console.log(`[MyCallProxy] [代理连接中] 连接完成，发送: ${api}`)
           self.proxyCall(api, params, callback)
         })
       } else {
-        console.warn('[代理未连接] 使用原始 my.call')
+        console.warn(TAG, '[代理未连接] 使用原始 my.call')
         if (self.originalMyCall) {
           self.originalMyCall(api, params, callback)
         }
@@ -164,7 +151,7 @@ class MyCallProxy {
     }
 
     this.connect()
-    console.log('[MyCallProxy] ✅ my.call 代理已初始化')
+    console.log(TAG, '✅ my.call 代理已初始化')
     return true
   }
 
@@ -173,15 +160,15 @@ class MyCallProxy {
     const deviceId = this.getDeviceId()
 
     if (!deviceId) {
-      console.error('[MyCallProxy] 服务器URL中缺少deviceId参数')
+      console.error(TAG, '服务器URL中缺少deviceId参数')
       return
     }
 
-    console.log('[MyCallProxy] 设备ID:', deviceId)
-    console.log('[MyCallProxy] 服务器URL:', this.serverUrl)
+    console.log(TAG, '设备ID:', deviceId)
+    console.log(TAG, '服务器URL:', this.serverUrl)
 
     const wsUrl = this.buildWebSocketUrl('/ws', { type: 'simulator' })
-    console.log('[MyCallProxy] WebSocket URL:', wsUrl)
+    console.log(TAG, 'WebSocket URL:', wsUrl)
 
     // 创建连接 Promise
     this.isConnecting = true
@@ -194,10 +181,10 @@ class MyCallProxy {
       my.connectSocket({
         url: wsUrl,
         success: () => {
-          console.log('[MyCallProxy] WebSocket 连接创建成功')
+          console.log(TAG, 'WebSocket 连接创建成功')
         },
         fail: (err) => {
-          console.error('[MyCallProxy] WebSocket 连接失败', err)
+          console.error(TAG, 'WebSocket 连接失败', err)
           this.isConnecting = false
           this.isConnected = false
           if (this._rejectConnect) {
@@ -209,7 +196,7 @@ class MyCallProxy {
       // 事件监听只绑定一次：my.onSocket* 是可累积注册，重复绑定会让重连后回调倍数触发
       this.bindSocketListeners()
     } catch (error) {
-      console.error('[MyCallProxy] 连接失败:', error)
+      console.error(TAG, '连接失败:', error)
       this.isConnecting = false
       if (this._rejectConnect) {
         this._rejectConnect(error)
@@ -226,7 +213,7 @@ class MyCallProxy {
 
     // 监听连接打开
     my.onSocketOpen(() => {
-      console.log('[MyCallProxy] 🔗 已连接到代理服务器')
+      console.log(TAG, '🔗 已连接到代理服务器')
       this.isConnecting = false
       this.isConnected = true
       if (this._resolveConnect) {
@@ -244,13 +231,13 @@ class MyCallProxy {
         const message: ProxyMessage = JSON.parse(res.data)
         this.handleMessage(message)
       } catch (error) {
-        console.error('[MyCallProxy] 消息解析失败:', error)
+        console.error(TAG, '消息解析失败:', error)
       }
     })
 
     // 监听错误
     my.onSocketError((err) => {
-      console.error('[MyCallProxy] WebSocket 错误:', err)
+      console.error(TAG, 'WebSocket 错误:', err)
       this.isConnecting = false
       this.isConnected = false
       if (this._rejectConnect) {
@@ -260,7 +247,7 @@ class MyCallProxy {
 
     // 监听关闭
     my.onSocketClose(() => {
-      console.warn('[MyCallProxy] WebSocket 连接已关闭')
+      console.warn(TAG, 'WebSocket 连接已关闭')
       this.isConnecting = false
       this.isConnected = false
       this.stopHeartbeat()
@@ -280,7 +267,7 @@ class MyCallProxy {
     const deviceId = this.getDeviceId()
 
     if (!deviceId) {
-      console.error('[MyCallProxy] 服务器URL中缺少deviceId参数')
+      console.error(TAG, '服务器URL中缺少deviceId参数')
       this.fallbackToOriginal(api, params, callback)
       return
     }
@@ -307,13 +294,13 @@ class MyCallProxy {
           console.log(`[MyCallProxy] 📤 发送: ${api} (msgId: ${msgId})`)
         },
         fail: (err) => {
-          console.error('[MyCallProxy] 发送失败:', err)
+          console.error(TAG, '发送失败:', err)
           this.pendingCalls.delete(msgId)
           this.fallbackToOriginal(api, params, callback)
         },
       })
     } catch (error) {
-      console.error('[MyCallProxy] 发送失败:', error)
+      console.error(TAG, '发送失败:', error)
       this.pendingCalls.delete(msgId)
       this.fallbackToOriginal(api, params, callback)
     }
@@ -375,7 +362,7 @@ class MyCallProxy {
 
   // 回退到原始 my.call
   fallbackToOriginal(api: string, params: Record<string, unknown>, callback?: CallCallback): void {
-    console.warn('[MyCallProxy] 回退到原始 my.call')
+    console.warn(TAG, '回退到原始 my.call')
     if (this.originalMyCall) {
       this.originalMyCall(api, params, callback)
     }
@@ -446,8 +433,7 @@ class MyCallProxy {
     const self = this
     // 兼容两种监听写法：my.onXxx(cb) 与 my.onXxx({ success: cb })
     ;(my as any)[api] = (arg: ((data: any) => void) | { success?: (data: any) => void }) => {
-      const listener =
-        typeof arg === 'function' ? arg : arg && typeof arg.success === 'function' ? arg.success : null
+      const listener = typeof arg === 'function' ? arg : arg && typeof arg.success === 'function' ? arg.success : null
       if (!listener) {
         console.warn(`[MyCallProxy] ${api} 参数既不是函数也不是含 success 的对象，调用被忽略`)
         return
@@ -540,7 +526,8 @@ class MyCallProxy {
       if (self.isConnected) {
         self.proxyCall(api, {}, () => {})
       } else if (self.isConnecting) {
-        self.waitForConnection()
+        self
+          .waitForConnection()
           .then(() => self.proxyCall(api, {}, () => {}))
           .catch(() => {})
       } else if (typeof self.originalNamedApis.get(api) === 'function') {
@@ -563,7 +550,7 @@ class MyCallProxy {
         role: 'simulator',
         timestamp: Date.now(),
       }),
-      fail: (err) => console.error('[MyCallProxy] 模拟器注册发送失败:', err),
+      fail: (err) => console.error(TAG, '模拟器注册发送失败:', err),
     })
   }
 
@@ -675,7 +662,7 @@ class MyCallProxy {
     this.eventListeners.clear()
     this.subscribedApis.clear()
     this.rejectPendingCalls('代理已销毁')
-    console.log('[MyCallProxy] 🔌 my.call 代理已销毁')
+    console.log(TAG, '🔌 my.call 代理已销毁')
   }
 
   // 获取连接状态
