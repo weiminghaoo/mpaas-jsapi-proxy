@@ -1,8 +1,10 @@
 import { ProxyServer } from './server';
 import { Tui } from './tui';
 import { Utils } from './utils';
+import type { LogSink } from './utils';
 import config from './config';
 import minimist from 'minimist';
+import fs from 'fs';
 
 const args = minimist(process.argv.slice(2));
 
@@ -12,6 +14,10 @@ const finalConfig = {
   ...(args.p !== undefined && { port: Number(args.p) }),
   ...(args.port !== undefined && { port: Number(args.port) }),
 };
+
+// 日志落盘路径：只有显式给出字符串路径才落盘，--log-file 不带值时 minimist 会解析成 true，视为未开启
+const logFilePath =
+  typeof args['log-file'] === 'string' && args['log-file'].length > 0 ? (args['log-file'] as string) : null;
 
 const proxyServer = new ProxyServer(finalConfig);
 
@@ -23,6 +29,14 @@ const noTui = args.tui === false;
 
 let tui: Tui | null = null;
 let statusTimer: NodeJS.Timeout | null = null;
+
+// 日志文件流：仅在给出 --log-file 时创建，一次性打开、追加写入（不逐行 open/close）。
+// 未开启时保持 null，进程内不产生任何文件句柄
+const logStream = logFilePath ? fs.createWriteStream(logFilePath, { flags: 'a' }) : null;
+
+// 退出是否已在进行中：日志流使退出被推迟到 end() 的回调之后，期间可能再次收到信号，
+// 用此标记保证收尾流程只跑一次
+let exiting = false;
 
 // 这四条必须注册在任何可能抛错的调用之前：tui.start() 会先进备用屏并开 raw mode，
 // proxyServer.start() 也可能同步抛出（如 --port abc → ERR_SOCKET_BAD_PORT）。
@@ -39,7 +53,11 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// 终端不支持 TUI（stdout 非 TTY、尺寸未知）或显式 --no-tui 时，一律降级为纯文本头部
+// 终端不支持 TUI（stdout 非 TTY、尺寸未知）或显式 --no-tui 时，一律降级为纯文本头部。
+// 日志出口按「TUI 开/关 × --log-file 开/关」四态组合：屏幕侧与文件侧互相独立，
+// 屏幕侧保留 TUI 滚动区或默认 console.log，文件侧只是把同一行额外追加进文件
+const writers: LogSink[] = [];
+
 if (Tui.isSupported() && !noTui) {
   const instance = new Tui({
     port: finalConfig.port,
@@ -54,8 +72,27 @@ if (Tui.isSupported() && !noTui) {
   // 顺序不可换：先进备用屏画好头部，再挂日志 sink；
   // 反过来的话启动日志会落在主屏、把头部顶走
   instance.start();
-  Utils.setLogSink((line) => instance.appendLog(line));
+  writers.push((line) => instance.appendLog(line));
   proxyServer.setTui(instance);
+} else if (logStream) {
+  // TUI 关闭但开了落盘：屏幕侧仍要走默认 console.log，否则日志只进文件、终端一片空白
+  writers.push((line) => console.log(line));
+}
+
+// 文件侧：把 sink 收到的整行原样追加。该行已是 Utils.formatLogLine 的输出，
+// 因此文件内容与终端逐字一致，且不含任何 ANSI 转义序列
+if (logStream) {
+  const stream = logStream;
+  writers.push((line) => stream.write(line + '\n'));
+}
+
+// 屏幕侧与文件侧都关闭时（默认）不设 sink，走 Utils 内部的 console.log，与改造前一致
+if (writers.length > 0) {
+  Utils.setLogSink((line) => {
+    for (const writer of writers) {
+      writer(line);
+    }
+  });
 } else {
   Utils.setLogSink(null);
 }
@@ -78,8 +115,12 @@ if (tui) {
 }
 
 // 关闭流程：SIGINT / SIGTERM 与 Tui 的 onQuit 共用。
-// tui.stop() 与 server.stop() 均幂等，多条路径重复进入无副作用
+// tui.stop() 与 server.stop() 均幂等；退出被日志流的 flush 推迟后会留下再次进入的窗口，
+// 由 exiting 标记兜住
 function shutdown(code: number): void {
+  if (exiting) return;
+  exiting = true;
+
   if (statusTimer) {
     clearInterval(statusTimer);
     statusTimer = null;
@@ -90,5 +131,21 @@ function shutdown(code: number): void {
   // 先恢复终端再停服务器：「服务器已关闭」因此留在主屏的 scrollback 里，而不是随备用屏一起消失
   tui?.stop();
   proxyServer.stop();
-  process.exit(code);
+
+  // 无日志流时与改造前逐字一致：立即退出
+  if (!logStream) {
+    process.exit(code);
+    return;
+  }
+
+  // end() 的 flush 是异步的，紧接着 process.exit 会把最后一行（「服务器已关闭」）丢在缓冲里，
+  // 使文件内容与终端不一致。等 'close'（fd 已关闭、数据已刷）再退出，
+  // 并用兜底计时器防住流异常时 'close' 不来导致的挂起
+  const stream = logStream;
+  const forceExit = setTimeout(() => process.exit(code), 1000);
+  stream.once('close', () => {
+    clearTimeout(forceExit);
+    process.exit(code);
+  });
+  stream.end();
 }
