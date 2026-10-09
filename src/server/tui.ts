@@ -142,13 +142,15 @@ export class Tui {
   // 进入备用屏、画头部、建立滚动区。尾部顺序不可换：
   // 滚动区一旦设上，头部就只能画在区域之外，所以头部必须先画完
   start(): void {
+    // 不支持 TUI 的终端（非 TTY / 尺寸未知）一个字节都不能写：ANSI 会污染重定向输出
+    if (!Tui.isSupported()) return;
     // 已经退出过的实例不得再进入——stop() 幂等，进去就再也出不来了
     if (this.stopped) return;
     this.started = true;
 
     process.stdout.write(ALT_ON + CLEAR + HOME);
     this.drawHeader();
-    process.stdout.write(SCROLL_REGION(this.logTopRow(), this.rows()) + CURSOR(this.logTopRow(), 1));
+    this.applyScrollRegion();
 
     process.stdout.on('resize', this.handleResize);
 
@@ -188,6 +190,8 @@ export class Tui {
     if (this.logBuffer.length > LOG_BUFFER_LIMIT) {
       this.logBuffer.shift();
     }
+    // 终端放不下合法滚动区时只进缓冲、不写屏幕：写任何一行都会滚动整屏、把头部顶走
+    if (!this.canScroll()) return;
     process.stdout.write(line + '\n');
   }
 
@@ -220,7 +224,8 @@ export class Tui {
   private redraw(): void {
     process.stdout.write(CLEAR + HOME);
     this.drawHeader();
-    process.stdout.write(SCROLL_REGION(this.logTopRow(), this.rows()) + CURSOR(this.logTopRow(), 1));
+    // 没有合法滚动区时不回填：回填同样是写日志行，会把整屏滚动、头部顶走
+    if (!this.applyScrollRegion()) return;
 
     // 回填最后「日志区高度」行；光标落在回填内容之后，后续日志从这里续写
     const history = this.logBuffer.slice(-this.logRows());
@@ -254,14 +259,33 @@ export class Tui {
     return headerHeight(this.qrRows, this.qrVisible);
   }
 
-  // 滚动区上界 = 头部行数 + 1；终端矮到装不下头部时退到最后一行，保证日志区至少 1 行
-  private logTopRow(): number {
-    return Math.min(this.headRows() + 1, this.rows());
+  // 该尺寸下滚动区是否可表达：DECSTBM 要求 top < bottom，即头部下方至少要有 2 行。
+  // 用「≥ 头部 + 2」而不是「≥ 头部 + 1」：top == bottom 的 DECSTBM 是非法序列，
+  // 真实终端会忽略它并保留上一次的边距（或复位成整屏），后果比根本不设区域更糟——
+  // 头部会被随后的日志顶走，而 statusRow() 仍按旧布局计算，越写越乱
+  private canScroll(): boolean {
+    return this.rows() >= this.headRows() + 2;
   }
 
-  // 滚动区行数 = rows - 头部行数，下限 1
+  // 建立滚动区：合法则设上并把光标落到日志区首行；放不下合法区域时只复位区域。
+  // 返回是否处于「有滚动区」状态——凡要写日志行的调用点必须据此判断
+  private applyScrollRegion(): boolean {
+    if (!this.canScroll()) {
+      process.stdout.write(SCROLL_RESET);
+      return false;
+    }
+    process.stdout.write(SCROLL_REGION(this.logTopRow(), this.rows()) + CURSOR(this.logTopRow(), 1));
+    return true;
+  }
+
+  // 滚动区上界 = 头部行数 + 1（仅在 canScroll() 为真时有意义）
+  private logTopRow(): number {
+    return this.headRows() + 1;
+  }
+
+  // 滚动区行数（canScroll() 为真时恒 ≥ 2）
   private logRows(): number {
-    return Math.max(1, this.rows() - this.logTopRow() + 1);
+    return this.rows() - this.logTopRow() + 1;
   }
 
   // 状态行行号：展开态是头部倒数第二行（qrRows + 4），收起态是头部的最后一行（4）。
