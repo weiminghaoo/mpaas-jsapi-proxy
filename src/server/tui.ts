@@ -126,8 +126,10 @@ export class Tui {
 
   constructor(opts: TuiOptions) {
     this.opts = opts;
-    this.qrRows = qrRowCount(opts.qrText);
+    // 逐行文本与行数取自同一次切分：两处各自过滤一旦写法漂移，
+    // statusRow() / headRows() 就会静默指向错行（状态行写到二维码上）
     this.qrLines = opts.qrText.split('\n').filter((line) => line.length > 0);
+    this.qrRows = this.qrLines.length;
     // 没有二维码文本时不得置为展开态：buildHeader 以 qrLines 是否为空判定展开，
     // 否则头部会收起却提示「按 q 收起二维码」
     this.qrVisible = this.qrRows > 0 && shouldExpandByDefault(this.rows(), this.qrRows);

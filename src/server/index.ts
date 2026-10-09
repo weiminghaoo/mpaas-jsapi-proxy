@@ -119,9 +119,10 @@ if (tui) {
   statusTimer = setInterval(() => activeTui.setStatus(proxyServer.getStatus()), 1000);
 }
 
-// 关闭流程：SIGINT / SIGTERM 与 Tui 的 onQuit 共用。
-// tui.stop() 与 server.stop() 均幂等；退出被日志流的 flush 推迟后会留下再次进入的窗口，
-// 由 exiting 标记兜住
+// 关闭流程：SIGINT / SIGTERM / uncaughtException 与 Tui 的 onQuit 共用。
+// tui.stop() 自身幂等，但 proxyServer.stop() 不是——它清掉 heartbeatTimer 却把 wss 留在原处，
+// 再次调用会重复 close 并再打一行「服务器已关闭」。退出被日志流的 flush 推迟后会留下
+// 再次收到信号的窗口，重复进入一律由下面的 exiting 标记兜住，不依赖被调方幂等
 function shutdown(code: number): void {
   if (exiting) return;
   exiting = true;

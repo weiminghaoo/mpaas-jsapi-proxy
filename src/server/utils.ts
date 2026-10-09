@@ -1,10 +1,10 @@
 import os from 'os';
-import type { NetworkInterfaceInfo } from 'os';
 
 // 日志级别
 export type LogType = 'info' | 'success' | 'error' | 'warn';
 
-// 日志出口：接收已格式化的一行文本
+// 日志出口：接收已格式化的一段文本。
+// 通常是单行，但崩溃诊断会把 stack 并入同一条，故允许内含换行
 export type LogSink = (line: string) => void;
 
 export class Utils {
