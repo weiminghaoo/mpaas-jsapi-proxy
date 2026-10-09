@@ -48,9 +48,12 @@ process.on('SIGTERM', () => shutdown(0));
 process.on('exit', () => tui?.stop());
 
 process.on('uncaughtException', (error) => {
+  // 先恢复终端，崩溃信息才会落在主屏、而不是随备用屏一起消失
   tui?.stop();
-  console.error('未捕获异常:', error);
-  process.exit(1);
+  // 崩溃诊断必须走 sink：裸 console.error 会绕过 sink，开了 --log-file 时崩溃原因永远进不了文件
+  Utils.log(`未捕获异常: ${error instanceof Error ? error.message : String(error)}`, 'error');
+  // 复用 shutdown 的「等日志流 close 后退出」流程刷完缓冲，退出码仍为 1，1s 兜底防挂死
+  shutdown(1);
 });
 
 // 终端不支持 TUI（stdout 非 TTY、尺寸未知）或显式 --no-tui 时，一律降级为纯文本头部。
